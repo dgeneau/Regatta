@@ -10,6 +10,8 @@ import glob
 import plotly.graph_objects as go
 
 
+st.set_page_config(layout="wide")
+
 
 # Dictionary for mapping the shorthand to readable form
 class_mapping = {
@@ -77,7 +79,7 @@ def clean_data(data):
     return cleaned_data
 st.title('Canada Rowing Regatta Analysis')
 
-file_path  = '/Users/danielgeneau/Library/CloudStorage/OneDrive-SharedLibraries-RowingCanadaAviron/HP - Staff - SSSM/General/Performance Analysis/FISA GPS Databases/fisadataapi/official_gps/2024/FOQR_2024_4'
+file_path  = 'GPS_Data'
 
 race_list = glob.glob(f'{file_path}/**.csv')
 
@@ -87,7 +89,6 @@ for file in race_list:
 	race_display.append(file.split('/')[-1].split('_')[-1].split('.')[0])
 
 
-st.write(clean_data(race_display))
 
 
 race = st.selectbox('Select Race for Analysis', race_display)
@@ -97,7 +98,6 @@ race = f'{file_path}/FOQR_2024_1_{race}.csv'
 
 data = race
 
-st.header('Repechage: PR1 W1x')
 
 
 def convert_seconds_to_time(seconds):
