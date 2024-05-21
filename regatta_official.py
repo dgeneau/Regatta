@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 
 
 st.set_page_config(layout="wide")
-
+st.image('rowing_canada.png', width = 150)
 
 # Dictionary for mapping the shorthand to readable form
 class_mapping = {
@@ -48,6 +48,7 @@ def clean_data(data):
         # Extracting the class code
         class_code = entry[3:12].replace("-", "")
         
+        
         # Checking for para boat class
         if 'PR' in entry:
             class_code += entry[12:16].replace("-", "")
@@ -77,6 +78,8 @@ def clean_data(data):
         cleaned_data.append(readable_entry)
     
     return cleaned_data
+
+
 st.title('Canada Rowing Regatta Analysis')
 
 file_path  = 'GPS_Data'
@@ -89,14 +92,11 @@ for file in race_list:
 	race_display.append(file.split('/')[-1].split('_')[-1].split('.')[0])
 
 
-
+race_display = sorted(race_display)
 
 race = st.selectbox('Select Race for Analysis', race_display)
 
-race = f'{file_path}/FOQR_2024_1_{race}.csv'
-
-
-data = race
+data = f'{file_path}/FOQR_2024_1_{race}.csv'
 
 
 
