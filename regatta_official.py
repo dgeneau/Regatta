@@ -10,8 +10,14 @@ import glob
 import plotly.graph_objects as go
 
 
+
 st.set_page_config(layout="wide")
-st.image('rowing_canada.png', width = 150)
+
+
+
+pic, title = st.columns([.1, .9])
+with pic: 
+	st.image('rowing_canada.png', width = 90)
 
 # Dictionary for mapping the shorthand to readable form
 class_mapping = {
@@ -79,8 +85,8 @@ def clean_data(data):
     
     return cleaned_data
 
-
-st.title('Canada Rowing Regatta Analysis')
+with title:
+	st.title('Canada Rowing Regatta Analysis')
 
 file_path  = 'GPS_Data'
 
