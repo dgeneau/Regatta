@@ -90,7 +90,18 @@ with title:
 
 file_path  = 'GPS_Data'
 
-race_list = glob.glob(f'{file_path}/**.csv')
+events = glob.glob(f'{file_path}/**')
+event_list = []
+for regatta in events:
+	regatta = regatta.split('/')[-1]
+	event_list.append(regatta)
+
+event = st.selectbox('Select Event for Analysis', event_list)
+
+
+
+
+race_list = glob.glob(f'{file_path}/{event}/**.csv')
 
 
 race_display = [] 
@@ -102,7 +113,7 @@ race_display = sorted(race_display)
 
 race = st.selectbox('Select Race for Analysis', race_display)
 
-data = f'{file_path}/FOQR_2024_1_{race}.csv'
+data = f'{file_path}/{event}/{event}_{race}.csv'
 
 
 
@@ -133,7 +144,7 @@ if data is not None:
 	df = pd.read_csv(data, delimiter=';')
 
 	distance_list = df['Distance']
-	#st.write(df)
+
 	col_names = []
 	for dis in distance_list:
 	    col_names.append(str(dis)+'m')
