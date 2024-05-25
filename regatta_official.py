@@ -236,35 +236,80 @@ if data is not None:
 	avg_vel_1750 = df[speed_columns][six_index:seven_index].mean()
 	avg_vel_2000 = df[speed_columns][seven_index:eight_index].mean()
 
+	avg_sr_250 = df[stroke_columns][:one_index].mean()
+	avg_sr_500 = df[stroke_columns][one_index:two_index].mean()
+	avg_sr_750 = df[stroke_columns][two_index:three_index].mean()
+	avg_sr_1000 = df[stroke_columns][three_index:four_index].mean()
+	avg_sr_1250 = df[stroke_columns][four_index:five_index].mean()
+	avg_sr_1500 = df[stroke_columns][five_index:six_index].mean()
+	avg_sr_1750 = df[stroke_columns][six_index:seven_index].mean()
+	avg_sr_2000 = df[stroke_columns][seven_index:eight_index].mean()
+
 	data = {
     'Country': [],
     'Rank': [],
-    #'250m Split': [],
+    '250m Split': [],
     '500m Split': [],
     '750m Split': [],
     '1000m Split': [],
     '1250m Split': [],
     '1500m Split': [],
     '1750m Split': [],
-    '2000m Split': []
+    '2000m Split': [], 
+    '250m Stroke': [],
+    '500m Stroke': [],
+    '750m Stroke': [],
+    '1000m Stroke': [],
+    '1250m Stroke': [],
+    '1500m Stroke': [],
+    '1750m Stroke': [],
+    '2000m Stroke': [],
+    '250m Speed': [],
+    '500m Speed': [],
+    '750m Speed': [],
+    '1000m Speed': [],
+    '1250m Speed': [],
+    '1500m Speed': [],
+    '1750m Speed': [],
+    '2000m Speed': [],
+
 }
 	
 	for i in range(len(avg_vel_250)):
-	    data['Country'].append(country_list[i])
-	    data['Rank'].append(ranks[i])
-	    #data['250m Split'].append(convert_seconds_to_time(500 / avg_vel_250[i]))
-	    data['500m Split'].append(convert_seconds_to_time(500 / avg_vel_500[i]))
-	    data['750m Split'].append(convert_seconds_to_time(500 / avg_vel_750[i]))
-	    data['1000m Split'].append(convert_seconds_to_time(500 / avg_vel_1000[i]))
-	    data['1250m Split'].append(convert_seconds_to_time(500 / avg_vel_1250[i]))
-	    data['1500m Split'].append(convert_seconds_to_time(500 / avg_vel_1500[i]))
-	    data['1750m Split'].append(convert_seconds_to_time(500 / avg_vel_1750[i]))
-	    data['2000m Split'].append(convert_seconds_to_time(500 / avg_vel_2000[i]))
+		data['Country'].append(country_list[i])
+		data['Rank'].append(ranks[i])
+		data['250m Split'].append(convert_seconds_to_time(500 / avg_vel_250[i]))
+		data['500m Split'].append(convert_seconds_to_time(500 / avg_vel_500[i]))
+		data['750m Split'].append(convert_seconds_to_time(500 / avg_vel_750[i]))
+		data['1000m Split'].append(convert_seconds_to_time(500 / avg_vel_1000[i]))
+		data['1250m Split'].append(convert_seconds_to_time(500 / avg_vel_1250[i]))
+		data['1500m Split'].append(convert_seconds_to_time(500 / avg_vel_1500[i]))
+		data['1750m Split'].append(convert_seconds_to_time(500 / avg_vel_1750[i]))
+		data['2000m Split'].append(convert_seconds_to_time(500 / avg_vel_2000[i]))
+		data['250m Stroke'].append(round(avg_sr_250[i]))
+		data['500m Stroke'].append(round(avg_sr_500[i]))
+		data['750m Stroke'].append(round(avg_sr_750[i]))
+		data['1000m Stroke'].append(round(avg_sr_1000[i]))
+		data['1250m Stroke'].append(round(avg_sr_1250[i]))
+		data['1500m Stroke'].append(round(avg_sr_1500[i]))
+		data['1750m Stroke'].append(round(avg_sr_1750[i]))
+		data['2000m Stroke'].append(round(avg_sr_2000[i]))
+		data['250m Speed'].append(round(avg_vel_250[i], 2))
+		data['500m Speed'].append(round(avg_vel_500[i], 2))
+		data['750m Speed'].append(round(avg_vel_750[i], 2))
+		data['1000m Speed'].append(round(avg_vel_1000[i], 2))
+		data['1250m Speed'].append(round(avg_vel_1250[i], 2))
+		data['1500m Speed'].append(round(avg_vel_1500[i], 2))
+		data['1750m Speed'].append(round(avg_vel_1750[i], 2))
+		data['2000m Speed'].append(round(avg_vel_2000[i], 2))
+
+
+
+	
 
 
 	splits_unsorted = pd.DataFrame(data)
 	splits = splits_unsorted.sort_values(by = 'Rank').reset_index(drop=True)
-	
 
 
 	
@@ -300,19 +345,43 @@ if data is not None:
 		
 
 	st.plotly_chart(splits_plot, use_container_width = True)
-	
+
+	first_two_cols = splits.iloc[:, :2]
+	remaining_cols = splits.iloc[:, 2:]
+	distance_columns = ['250m', '500m', '750m', '1000m', '1250m', '1500m', '1750m', '2000m']
 
 
+	# Create a new DataFrame to hold the concatenated values
+	concatenated_splits = pd.DataFrame(first_two_cols)
+
+	# Iterate through the columns in steps of 8
+	for j in range(8):
+	    new_col = {}
+	    col_1 = remaining_cols.columns[j] if j < remaining_cols.shape[1] else None
+	    col_9 = remaining_cols.columns[j+8] if (j+8) < remaining_cols.shape[1] else None
+	    col_17 = remaining_cols.columns[j+16] if (j+16) < remaining_cols.shape[1] else None
+	    
+	    concatenated_values = remaining_cols.apply(lambda row: '<br>'.join([str(row[col]) for col in [col_1, col_9, col_17] if col is not None]), axis=1)
+	    
+	    if j < len(distance_columns):
+	        new_col[distance_columns[j]] = concatenated_values
+	    
+	    concatenated_splits = pd.concat([concatenated_splits, pd.DataFrame(new_col)], axis=1)
+
+
+
+	#concatenated_splits = concatenated_splits.iloc[:, :-8]
 	splits_fig  = go.Figure(data=[go.Table(
-	    header=dict(values=list(splits.columns),
+	    header=dict(values=list(concatenated_splits.columns),
 	                fill_color='grey',
 	                font=dict(size=16, color='white'),
 	                align='left'),
-	    cells=dict(values=[splits[col] for col in splits.columns],
+	    cells=dict(values=[concatenated_splits[col] for col in concatenated_splits.columns],
 	               fill=dict(color=fill_colors),
 	               font=dict(size=14, color='black'),
 	               align='left'))
 	])
+	splits_fig.update_layout(height=800) 
 	st.plotly_chart(splits_fig, use_container_width=True)
 
 
