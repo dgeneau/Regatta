@@ -145,6 +145,8 @@ if data is not None:
 
 	distance_list = df['Distance']
 
+	#st.write(df)
+
 	col_names = []
 	for dis in distance_list:
 	    col_names.append(str(dis)+'m')
@@ -237,7 +239,7 @@ if data is not None:
 	data = {
     'Country': [],
     'Rank': [],
-    '250m Split': [],
+    #'250m Split': [],
     '500m Split': [],
     '750m Split': [],
     '1000m Split': [],
@@ -250,7 +252,7 @@ if data is not None:
 	for i in range(len(avg_vel_250)):
 	    data['Country'].append(country_list[i])
 	    data['Rank'].append(ranks[i])
-	    data['250m Split'].append(convert_seconds_to_time(500 / avg_vel_250[i]))
+	    #data['250m Split'].append(convert_seconds_to_time(500 / avg_vel_250[i]))
 	    data['500m Split'].append(convert_seconds_to_time(500 / avg_vel_500[i]))
 	    data['750m Split'].append(convert_seconds_to_time(500 / avg_vel_750[i]))
 	    data['1000m Split'].append(convert_seconds_to_time(500 / avg_vel_1000[i]))
