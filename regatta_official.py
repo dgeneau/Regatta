@@ -369,7 +369,8 @@ if data is not None:
 	    concatenated_splits = pd.concat([concatenated_splits, pd.DataFrame(new_col)], axis=1)
 
 
-
+	st.header('Race Breakdown')
+	st.write('Data provided by country in the order of split, stroke rate, average velocity for each 250m section')
 	#concatenated_splits = concatenated_splits.iloc[:, :-8]
 	splits_fig  = go.Figure(data=[go.Table(
 	    header=dict(values=list(concatenated_splits.columns),
