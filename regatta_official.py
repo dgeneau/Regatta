@@ -10,6 +10,20 @@ import glob
 import plotly.graph_objects as go
 from scipy.signal import savgol_filter
 
+def rename_duplicate_columns(columns):
+    column_counts = {}
+    new_columns = []
+    
+    for column in columns:
+        if column in column_counts:
+            column_counts[column] += 1
+            new_columns.append(f"{column}{column_counts[column]}")
+        else:
+            column_counts[column] = 0
+            new_columns.append(column)
+    
+    return new_columns
+
 
 
 st.set_page_config(layout="wide")
@@ -112,9 +126,9 @@ for file in race_list:
 
 race_display = sorted(race_display)
 
-race = st.selectbox('Select Race for Analysis', race_display)
+#race = st.selectbox('Select Race for Analysis', race_display)
+races = st.multiselect('Select Race(s) for Analysis', race_display)
 
-data = f'{file_path}/{event}/{event}_{race}.csv'
 
 
 
@@ -138,11 +152,33 @@ def time_to_seconds(time_str):
 
 
 
+if len(races)<1: 
+	st.header('Select Race for Analysis')
+	st.stop()
+
+if races is not None:
+
+	dataframes = []
+
+	for i, race in enumerate(races):
+		data = f'{file_path}/{event}/{event}_{race}.csv'
+		df = pd.read_csv(data, delimiter=';')
+		df.columns = [f"{col}_{i+1}" for col in df.columns]
+		dataframes.append(df)
+
+	# Concatenate all dataframes horizontally
+	df = pd.concat(dataframes, axis=1)
+	distance_columns = [col for col in df.columns if 'Distance' in col]
+	columns_to_drop = distance_columns[1:]  # Keep the first 'Distance' column and drop the rest
+
+	df.drop(columns=columns_to_drop, inplace=True)
+	df.rename(columns={'Distance_1': 'Distance'}, inplace=True)
+	
+	
 
 
-if data is not None:
 
-	df = pd.read_csv(data, delimiter=';')
+	#df = pd.read_csv(data, delimiter=';')
 
 	distance_list = df['Distance']
 
@@ -330,6 +366,8 @@ if data is not None:
 	transposed_split = splits_unsorted.T
 	transposed_split.columns = transposed_split.iloc[0,:]
 	transposed_split = transposed_split.iloc[2:, :]
+	transposed_split.columns = rename_duplicate_columns(transposed_split.columns)
+
 	
 	for col in transposed_split.columns:
 		splits_plot.add_trace(go.Scatter(y=pd.to_datetime(transposed_split[col]), 
