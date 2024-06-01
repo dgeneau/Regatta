@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np 
 import glob
 import plotly.graph_objects as go
+from scipy.signal import savgol_filter
 
 
 
@@ -184,7 +185,7 @@ if data is not None:
 
 	vel_fig = go.Figure()
 	for i in range(0,len(speed_columns)):
-		vel_fig.add_trace(go.Scatter(y=df[speed_columns[i]],
+		vel_fig.add_trace(go.Scatter(y=savgol_filter(df[speed_columns[i]],30,2),
 									x = df['Distance'],
 	                                              mode='lines',
 	                                              name=country_list[i]))
@@ -200,7 +201,7 @@ if data is not None:
 	#SR
 	stroke_fig = go.Figure()
 	for i in range(0,len(stroke_columns)):
-		stroke_fig.add_trace(go.Scatter(y=df[stroke_columns[i]][df[stroke_columns[i]]>20],
+		stroke_fig.add_trace(go.Scatter(y=savgol_filter(df[stroke_columns[i]][df[stroke_columns[i]]>20],30,2),
 									x = df['Distance'],
 	                                              mode='lines',
 	                                              name=country_list[i]))
