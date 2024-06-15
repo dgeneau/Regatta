@@ -154,6 +154,7 @@ def time_to_seconds(time_str):
 
 if len(races)<1: 
 	st.header('Select Race for Analysis')
+	st.write('Select one or multiple races from the select-box above')
 	st.stop()
 
 if races is not None:
