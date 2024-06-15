@@ -139,7 +139,9 @@ def convert_seconds_to_time(seconds):
     minutes = time_delta.components.minutes
     seconds = time_delta.components.seconds
     milliseconds = time_delta.components.milliseconds
-    milliseconds = milliseconds[0]
+    milliseconds = str(milliseconds)
+    milliseconds = int(milliseconds[0])
+
 
     
     # Format the time as mm:ss.ms
@@ -348,7 +350,6 @@ if races is not None:
 
 
 	splits_unsorted = pd.DataFrame(data)
-	st.write(splits_unsorted)
 	splits = splits_unsorted.sort_values(by = 'Rank').reset_index(drop=True)
 
 
