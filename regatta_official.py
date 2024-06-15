@@ -126,7 +126,6 @@ for file in race_list:
 
 race_display = sorted(race_display)
 
-#race = st.selectbox('Select Race for Analysis', race_display)
 races = st.multiselect('Select Race(s) for Analysis', race_display)
 
 
@@ -140,10 +139,12 @@ def convert_seconds_to_time(seconds):
     minutes = time_delta.components.minutes
     seconds = time_delta.components.seconds
     milliseconds = time_delta.components.milliseconds
+    milliseconds = milliseconds[0]
+
     
     # Format the time as mm:ss.ms
-    formatted_time = f"{minutes:02}:{seconds:02}.{milliseconds:03}"
-    
+    formatted_time = f"{minutes:02}:{seconds:02}.{milliseconds:01}"
+    #formatted_time = f"{minutes:02}:{seconds:02}"
     return formatted_time
 
 def time_to_seconds(time_str):
@@ -347,7 +348,9 @@ if races is not None:
 
 
 	splits_unsorted = pd.DataFrame(data)
+	st.write(splits_unsorted)
 	splits = splits_unsorted.sort_values(by = 'Rank').reset_index(drop=True)
+
 
 
 	
