@@ -139,8 +139,8 @@ def convert_seconds_to_time(seconds):
     minutes = time_delta.components.minutes
     seconds = time_delta.components.seconds
     milliseconds = time_delta.components.milliseconds
-    milliseconds = str(milliseconds)
-    milliseconds = int(milliseconds[0])
+    #milliseconds = str(milliseconds)
+    #milliseconds = int(milliseconds)
 
 
     
