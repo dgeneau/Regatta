@@ -219,16 +219,21 @@ if races is not None:
 
 	
 	country_list = []
+	err_list = []
 	for col in name_list:
 		country_list.append(df[col][0])
 	
 
 	vel_fig = go.Figure()
 	for i in range(0,len(speed_columns)):
-		vel_fig.add_trace(go.Scatter(y=savgol_filter(df[speed_columns[i]],30,2),
-									x = df['Distance'],
-	                                              mode='lines',
-	                                              name=country_list[i]))
+		if df[speed_columns[i]].mean()>.5:
+			vel_fig.add_trace(go.Scatter(y=savgol_filter(df[speed_columns[i]],30,2),
+										x = df['Distance'],
+		                                              mode='lines',
+		                                              name=country_list[i]))
+		else: 
+			st.write(f'Error in Data for Country {country_list[i]}')
+			err_list.append(i)
 
 	vel_fig.update_layout(
     title='Boat Velocity Vs. Distance',
@@ -241,10 +246,13 @@ if races is not None:
 	#SR
 	stroke_fig = go.Figure()
 	for i in range(0,len(stroke_columns)):
-		stroke_fig.add_trace(go.Scatter(y=savgol_filter(df[stroke_columns[i]][df[stroke_columns[i]]>20],30,2),
-									x = df['Distance'],
-	                                              mode='lines',
-	                                              name=country_list[i]))
+		try:
+			stroke_fig.add_trace(go.Scatter(y=savgol_filter(df[stroke_columns[i]][df[stroke_columns[i]]>20],30,2),
+										x = df['Distance'],
+		                                              mode='lines',
+		                                              name=country_list[i]))
+		except:
+			pass
 
 	stroke_fig.update_layout(
     title='Boat Stroke Rate Vs. Distance',
@@ -315,40 +323,45 @@ if races is not None:
     '2000m Speed': [],
 
 }
+
 	
 	for i in range(len(avg_vel_250)):
-		data['Country'].append(country_list[i])
-		data['Rank'].append(ranks[i])
-		data['250m Split'].append(convert_seconds_to_time(500 / avg_vel_250[i]))
-		data['500m Split'].append(convert_seconds_to_time(500 / avg_vel_500[i]))
-		data['750m Split'].append(convert_seconds_to_time(500 / avg_vel_750[i]))
-		data['1000m Split'].append(convert_seconds_to_time(500 / avg_vel_1000[i]))
-		data['1250m Split'].append(convert_seconds_to_time(500 / avg_vel_1250[i]))
-		data['1500m Split'].append(convert_seconds_to_time(500 / avg_vel_1500[i]))
-		data['1750m Split'].append(convert_seconds_to_time(500 / avg_vel_1750[i]))
-		data['2000m Split'].append(convert_seconds_to_time(500 / avg_vel_2000[i]))
-		data['250m Stroke'].append(round(avg_sr_250[i],2))
-		data['500m Stroke'].append(round(avg_sr_500[i],2))
-		data['750m Stroke'].append(round(avg_sr_750[i],2))
-		data['1000m Stroke'].append(round(avg_sr_1000[i],2))
-		data['1250m Stroke'].append(round(avg_sr_1250[i],2))
-		data['1500m Stroke'].append(round(avg_sr_1500[i],2))
-		data['1750m Stroke'].append(round(avg_sr_1750[i],2))
-		data['2000m Stroke'].append(round(avg_sr_2000[i],2))
-		data['250m Speed'].append(round(avg_vel_250[i], 2))
-		data['500m Speed'].append(round(avg_vel_500[i], 2))
-		data['750m Speed'].append(round(avg_vel_750[i], 2))
-		data['1000m Speed'].append(round(avg_vel_1000[i], 2))
-		data['1250m Speed'].append(round(avg_vel_1250[i], 2))
-		data['1500m Speed'].append(round(avg_vel_1500[i], 2))
-		data['1750m Speed'].append(round(avg_vel_1750[i], 2))
-		data['2000m Speed'].append(round(avg_vel_2000[i], 2))
+		try:
+		
+			data['Country'].append(country_list[i])
+			data['Rank'].append(ranks[i])
+			data['250m Split'].append(convert_seconds_to_time(500 / avg_vel_250[i]))
+			data['500m Split'].append(convert_seconds_to_time(500 / avg_vel_500[i]))
+			data['750m Split'].append(convert_seconds_to_time(500 / avg_vel_750[i]))
+			data['1000m Split'].append(convert_seconds_to_time(500 / avg_vel_1000[i]))
+			data['1250m Split'].append(convert_seconds_to_time(500 / avg_vel_1250[i]))
+			data['1500m Split'].append(convert_seconds_to_time(500 / avg_vel_1500[i]))
+			data['1750m Split'].append(convert_seconds_to_time(500 / avg_vel_1750[i]))
+			data['2000m Split'].append(convert_seconds_to_time(500 / avg_vel_2000[i]))
+			data['250m Stroke'].append(round(avg_sr_250[i],2))
+			data['500m Stroke'].append(round(avg_sr_500[i],2))
+			data['750m Stroke'].append(round(avg_sr_750[i],2))
+			data['1000m Stroke'].append(round(avg_sr_1000[i],2))
+			data['1250m Stroke'].append(round(avg_sr_1250[i],2))
+			data['1500m Stroke'].append(round(avg_sr_1500[i],2))
+			data['1750m Stroke'].append(round(avg_sr_1750[i],2))
+			data['2000m Stroke'].append(round(avg_sr_2000[i],2))
+			data['250m Speed'].append(round(avg_vel_250[i], 2))
+			data['500m Speed'].append(round(avg_vel_500[i], 2))
+			data['750m Speed'].append(round(avg_vel_750[i], 2))
+			data['1000m Speed'].append(round(avg_vel_1000[i], 2))
+			data['1250m Speed'].append(round(avg_vel_1250[i], 2))
+			data['1500m Speed'].append(round(avg_vel_1500[i], 2))
+			data['1750m Speed'].append(round(avg_vel_1750[i], 2))
+			data['2000m Speed'].append(round(avg_vel_2000[i], 2))
+		except:
+			pass
 
 
-
+	for err in err_list:	
+		data['Country'].pop(err)
+		data['Rank'].pop(err)	
 	
-
-
 	splits_unsorted = pd.DataFrame(data)
 	splits = splits_unsorted.sort_values(by = 'Rank').reset_index(drop=True)
 
