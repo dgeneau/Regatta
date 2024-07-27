@@ -186,7 +186,6 @@ if races is not None:
 
 	distance_list = df['Distance']
 
-	#st.write(df)
 
 	col_names = []
 	for dis in distance_list:
@@ -214,15 +213,22 @@ if races is not None:
 
 	#Plotting Things
 
-	col1, col2  = st.columns([6, 4])
-
-
-	
 	country_list = []
 	err_list = []
 	for col in name_list:
 		country_list.append(df[col][0])
-	
+
+	#lane_det = st.checkbox('Lane Info')
+	lane_det = False
+
+	if lane_det == True:
+
+		for country in country_list:
+			total_time = convert_seconds_to_time(float(times_in_seconds[country_list.index(country)][1]))
+			st.metric(f'Lane {country_list.index(country)+1}', country, delta = total_time)
+
+
+	col1, col2  = st.columns([6, 4])
 
 	vel_fig = go.Figure()
 	for i in range(0,len(speed_columns)):
@@ -284,6 +290,7 @@ if races is not None:
 	avg_vel_1500 = df[speed_columns][five_index:six_index].mean()
 	avg_vel_1750 = df[speed_columns][six_index:seven_index].mean()
 	avg_vel_2000 = df[speed_columns][seven_index:eight_index].mean()
+	avg_vel_total = df[speed_columns].mean()
 
 	avg_sr_250 = df[stroke_columns][:one_index].mean()
 	avg_sr_500 = df[stroke_columns][one_index:two_index].mean()
@@ -293,6 +300,9 @@ if races is not None:
 	avg_sr_1500 = df[stroke_columns][five_index:six_index].mean()
 	avg_sr_1750 = df[stroke_columns][six_index:seven_index].mean()
 	avg_sr_2000 = df[stroke_columns][seven_index:eight_index].mean()
+	avg_sr_total = df[stroke_columns].mean()
+
+	
 
 	data = {
     'Country': [],
@@ -354,6 +364,7 @@ if races is not None:
 			data['1500m Speed'].append(round(avg_vel_1500[i], 2))
 			data['1750m Speed'].append(round(avg_vel_1750[i], 2))
 			data['2000m Speed'].append(round(avg_vel_2000[i], 2))
+
 		except:
 			pass
 
@@ -364,7 +375,6 @@ if races is not None:
 	
 	splits_unsorted = pd.DataFrame(data)
 	splits = splits_unsorted.sort_values(by = 'Rank').reset_index(drop=True)
-
 
 
 	
@@ -442,7 +452,13 @@ if races is not None:
 	splits_fig.update_layout(height=800) 
 	st.plotly_chart(splits_fig, use_container_width=True)
 
+	_='''
+	lane1, lane2, lane3, lane4, lane5, lane6 = st.columns(6)
+	for lane in range(0,len(avg_vel_total):
+		if speed>0:
+				st.metric('Approximate Race Time',convert_seconds_to_time(2000 / ave_vel_total[lane]))
 
+	'''
 
 
 
