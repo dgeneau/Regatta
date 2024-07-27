@@ -232,8 +232,8 @@ if races is not None:
 	for col in name_list:
 		lane = col.split('_')[0][-1]
 		
-		#country_list.append(f'{df[col][0]}, {lane}')
-		country_list.append(df[col][0])
+		country_list.append(f'{df[col][0]}, {lane}')
+		#country_list.append(df[col][0])
 
 
 
