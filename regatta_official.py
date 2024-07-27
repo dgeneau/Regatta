@@ -230,7 +230,7 @@ if races is not None:
 	err_list = []
 	for col in name_list:
 		lane = col.split('_')[0][-1]
-		st.write(lane)
+		
 		country_list.append(f'{df[col][0]}, {col.split('_')[0][-1]}')
 
 
