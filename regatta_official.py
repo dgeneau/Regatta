@@ -182,6 +182,7 @@ if races is not None:
 
 	# Concatenate all dataframes horizontally
 	df = pd.concat(dataframes, axis=1)
+
 	distance_columns = [col for col in df.columns if 'Distance' in col]
 	columns_to_drop = distance_columns[1:]  # Keep the first 'Distance' column and drop the rest
 
@@ -204,6 +205,7 @@ if races is not None:
 	selected_columns = [col for col in df.columns if 'ShortName' in col]
 	phase = data.split('/')[-1].split('.')[0].split('_')[-1]
 
+
 	speed_columns = [col for col in df.columns if col.startswith('Speed')]
 	stroke_columns = [col for col in df.columns if col.startswith('Stroke')]
 	name_list  = [col for col in df.columns if col.startswith('ShortName')]
@@ -224,10 +226,15 @@ if races is not None:
 	#Plotting Things
 
 	country_list = []
+	lane_list = []
 	err_list = []
 	for col in name_list:
-		country_list.append(df[col][0])
+		lane = col.split('_')[0][-1]
+		st.write(lane)
+		country_list.append(f'{df[col][0]}, {col.split('_')[0][-1]}')
 
+
+	
 	#lane_det = st.checkbox('Lane Info')
 	lane_det = False
 
@@ -246,7 +253,7 @@ if races is not None:
 			vel_fig.add_trace(go.Scatter(y=savgol_filter(df[speed_columns[i]],30,2),
 										x = df['Distance'],
 		                                              mode='lines',
-		                                              name=country_list[i]))
+		                                              name=f'{country_list[i]}'))
 		else: 
 			st.write(f'Error in Data for Country {country_list[i]}')
 			err_list.append(i)
@@ -315,7 +322,7 @@ if races is not None:
 	
 
 	data = {
-    'Country': [],
+    'Country, Lane': [],
     'Rank': [],
     '250m Split': [],
     '500m Split': [],
@@ -343,12 +350,12 @@ if races is not None:
     '2000m Speed': [],
 
 }
-
+	
 	
 	for i in range(len(avg_vel_250)):
 		try:
 		
-			data['Country'].append(country_list[i])
+			data['Country, Lane'].append(country_list[i])
 			data['Rank'].append(ranks[i])
 			data['250m Split'].append(convert_seconds_to_time(500 / avg_vel_250[i]))
 			data['500m Split'].append(convert_seconds_to_time(500 / avg_vel_500[i]))
@@ -380,7 +387,7 @@ if races is not None:
 
 
 	for err in err_list:	
-		data['Country'].pop(err)
+		data['Country, Lane'].pop(err)
 		data['Rank'].pop(err)	
 	
 	splits_unsorted = pd.DataFrame(data)
@@ -388,7 +395,7 @@ if races is not None:
 
 
 	
-	highlight_row = splits[splits['Country'] == 'CAN'].index[0] if 'CAN' in splits['Country'].values else None
+	highlight_row = splits[splits['Country, Lane'] == 'CAN'].index[0] if 'CAN' in splits['Country, Lane'].values else None
 	# Define colors for the cells
 	fill_colors = [['aliceblue' for _ in range(len(splits))] for _ in splits.columns]
 
@@ -462,13 +469,6 @@ if races is not None:
 	splits_fig.update_layout(height=800) 
 	st.plotly_chart(splits_fig, use_container_width=True)
 
-	_='''
-	lane1, lane2, lane3, lane4, lane5, lane6 = st.columns(6)
-	for lane in range(0,len(avg_vel_total):
-		if speed>0:
-				st.metric('Approximate Race Time',convert_seconds_to_time(2000 / ave_vel_total[lane]))
-
-	'''
 
 
 
