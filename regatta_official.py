@@ -232,6 +232,7 @@ if races is not None:
 
 	for col in name_list:
 		lane = col.split('_')[0][-1]
+		lane_list.append(lane)
 		plain_country.append(df[col][0])
 		
 
@@ -247,6 +248,8 @@ if races is not None:
 
 
 	if lane_det == True:
+		st.header('Timing Summary')
+		st.write('Approximated final times as calculated by race GPS Data.')
 
 		#for country in country_list:
 		final_times = []
@@ -258,11 +261,26 @@ if races is not None:
 
 		times = pd.DataFrame()
 		times['Country'] = plain_country
-		times['Lane'] = range(1,len(country_list)+1)
+		times['Lane'] = lane_list
 		times['Race Time'] = final_times
 		st.dataframe(times.set_index(times.columns[0]), use_container_width = True)
 			
 
+	st.header('Graphical Analysis')
+
+	_='''
+
+	lane_filter = st.checkbox('Filter Results by Lane')
+
+
+	if lane_filter == True: 
+		lane_sel = st.selectbox('Select Lanes for Analysis', range(1,len(country_list)+1))
+		lane_sel = str(lane_sel)
+		countries = [country for country in country_list if lane_sel in country]
+
+		st.write(df)
+
+	'''
 
 	col1, col2  = st.columns([6, 4])
 
@@ -432,6 +450,7 @@ if races is not None:
 	transposed_split = transposed_split.iloc[2:, :]
 	transposed_split.columns = rename_duplicate_columns(transposed_split.columns)
 
+
 	
 	for col in transposed_split.columns:
 		splits_plot.add_trace(go.Scatter(y=pd.to_datetime(transposed_split[col]), 
@@ -472,7 +491,7 @@ if races is not None:
 	    concatenated_splits = pd.concat([concatenated_splits, pd.DataFrame(new_col)], axis=1)
 
 
-	st.header('Race Breakdown')
+	st.header('Race Split Breakdown')
 	st.write('Data provided by country in the order of split, stroke rate, average velocity for each 250m section')
 	#concatenated_splits = concatenated_splits.iloc[:, :-8]
 	splits_fig  = go.Figure(data=[go.Table(
