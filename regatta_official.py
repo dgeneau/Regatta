@@ -164,11 +164,21 @@ if races is not None:
 
 	dataframes = []
 
-	for i, race in enumerate(races):
-		data = f'{file_path}/{event}/{event}_{race}.csv'
-		df = pd.read_csv(data, delimiter=';')
-		df.columns = [f"{col}_{i+1}" for col in df.columns]
-		dataframes.append(df)
+	if 'Paris' in event:
+		for i, race in enumerate(races):
+
+			data = f'{file_path}/{event}/{race}.csv'
+			df = pd.read_csv(data, delimiter=';')
+			df.columns = [f"{col}_{i+1}" for col in df.columns]
+			dataframes.append(df)
+	else: 
+
+		for i, race in enumerate(races):
+
+			data = f'{file_path}/{event}/{event}_{race}.csv'
+			df = pd.read_csv(data, delimiter=';')
+			df.columns = [f"{col}_{i+1}" for col in df.columns]
+			dataframes.append(df)
 
 	# Concatenate all dataframes horizontally
 	df = pd.concat(dataframes, axis=1)
@@ -221,7 +231,7 @@ if races is not None:
 	for col in name_list:
 		lane = col.split('_')[0][-1]
 		
-		country_list.append(f'{df[col][0]}')
+		country_list.append(f'{df[col][0]}, {lane}')
 
 
 	
