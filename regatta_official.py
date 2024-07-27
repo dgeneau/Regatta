@@ -228,9 +228,11 @@ if races is not None:
 	country_list = []
 	lane_list = []
 	err_list = []
+	plain_country = []
 
 	for col in name_list:
 		lane = col.split('_')[0][-1]
+		plain_country.append(df[col][0])
 		
 
 		country_list.append(f'{df[col][0]}, {lane}')
@@ -240,14 +242,26 @@ if races is not None:
 
 
 	
-	#lane_det = st.checkbox('Lane Info')
-	lane_det = False
+	lane_det = st.checkbox('Overall Timing Info')
+	#lane_det = False
+
 
 	if lane_det == True:
 
-		for country in country_list:
+		#for country in country_list:
+		final_times = []
+		for lane in range(0, len(country_list)):
+			#total_time = convert_seconds_to_time(float(times_in_seconds[country_list.index(country)][1]))
+			country = country_list[lane]
 			total_time = convert_seconds_to_time(float(times_in_seconds[country_list.index(country)][1]))
-			st.metric(f'Lane {country_list.index(country)+1}', country, delta = total_time)
+			final_times.append(total_time)
+
+		times = pd.DataFrame()
+		times['Country'] = plain_country
+		times['Lane'] = range(1,len(country_list)+1)
+		times['Race Time'] = final_times
+		st.dataframe(times.set_index(times.columns[0]), use_container_width = True)
+			
 
 
 	col1, col2  = st.columns([6, 4])
