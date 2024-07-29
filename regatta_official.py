@@ -432,7 +432,9 @@ if races is not None:
 
 
 	
-	highlight_row = splits[splits['Country, Lane'] == 'CAN'].index[0] if 'CAN' in splits['Country, Lane'].values else None
+	#highlight_row = splits[splits['Country, Lane'].str.contains('CAN')].index[0] if 'CAN' in splits['Country, Lane'].values else None
+	highlight_row = splits[splits['Country, Lane'].str.contains('CAN')].index[0] if splits['Country, Lane'].str.contains('CAN').any() else None
+
 	# Define colors for the cells
 	fill_colors = [['aliceblue' for _ in range(len(splits))] for _ in splits.columns]
 
