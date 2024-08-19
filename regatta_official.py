@@ -120,8 +120,16 @@ race_list = glob.glob(f'{file_path}/{event}/**.csv')
 
 
 race_display = [] 
-for file in race_list:
-	race_display.append(file.split('/')[-1].split('_')[-1].split('.')[0])
+if 'WCH_2024_1' or 'U23WCH_2024_1' in event: 
+	for file in race_list:
+		parts = file.split('/')[-1].split('.')[0].split('_')
+
+		race_display.append('_'.join(parts[3:]))
+
+
+else:	
+	for file in race_list:
+		race_display.append(file.split('/')[-1].split('_')[-1].split('.')[0])
 
 
 race_display = sorted(race_display)
@@ -171,9 +179,11 @@ if races is not None:
 			df = pd.read_csv(data, delimiter=';')
 			df.columns = [f"{col}_{i+1}" for col in df.columns]
 			dataframes.append(df)
+
 	else: 
 
 		for i, race in enumerate(races):
+
 
 			data = f'{file_path}/{event}/{event}_{race}.csv'
 			df = pd.read_csv(data, delimiter=';')
