@@ -130,9 +130,13 @@ if 'WCH_2024_1' or 'U23WCH_2024_1' == event:
 		race_display.append('_'.join(parts[3:]))
 '''
 
+if event == 'ECH_2025_1': 
+	for file in race_list: 
+		race_display.append(file.split('/')[-1].split('.')[0])
 
-for file in race_list:
-	race_display.append(file.split('/')[-1].split('_')[-1].split('.')[0])
+else: 
+	for file in race_list:
+		race_display.append(file.split('/')[-1].split('_')[-1].split('.')[0])
 
 
 race_display = sorted(race_display)
@@ -176,7 +180,7 @@ if races is not None:
 
 	dataframes = []
 
-	if 'Paris' in event:
+	if 'Paris' or 'ECH_2025_1' in event:
 		for i, race in enumerate(races):
 
 
