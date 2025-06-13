@@ -118,8 +118,6 @@ event = st.selectbox('Select Event for Analysis', event_list)
 
 race_list = glob.glob(f'{file_path}/{event}/**.csv')
 
-
-
 race_display = [] 
 _='''
 if 'WCH_2024_1' or 'U23WCH_2024_1' == event: 
@@ -133,6 +131,12 @@ if 'WCH_2024_1' or 'U23WCH_2024_1' == event:
 if event == 'ECH_2025_1': 
 	for file in race_list: 
 		race_display.append(file.split('/')[-1].split('.')[0])
+
+elif event == 'WCP2_2025_1': 
+	for file in race_list: 
+		race_display.append(file.split('/')[-1].split('.')[0])
+
+
 
 else: 
 	for file in race_list:
