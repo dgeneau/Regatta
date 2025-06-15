@@ -159,6 +159,8 @@ Hard coding in the prog analysis
 
 - need prog per boat per race
 '''
+
+_='''
 from pathlib import Path
 class_type          = []
 boat_country_list   = []
@@ -179,28 +181,36 @@ for data_file in race_list:
 		prog = prog_dict[b_class]
 		
 		
+		num_list            = []
+		for col in df.columns[1:]:
+			
+			num = col[-1]
+			num_list.append(num)
 
-		for col in df.columns:
+			num_list.append(float(num))
 			if 'ShortName' in col:
-				boat_country_list.append(df[col].iloc[0])
-				class_type.append(b_class)          # ⇦ keep lists in sync
-				stage_type.append(stage)
-			elif 'Speed' in col:
-				prog_list.append(round((df[col].mean() / float(prog)) * 100, 2))
-				speed_list.append(round(df[col].mean(), 2))
-				#split = speed_to_split(df[col].mean())
-				#time_list.append(sec_to_split(2000/df[col].mean()))
+				boat_country_list.append(df[f'ShortName{num}'].iloc[0])
+			if 'Speed' in col:
+				prog_list.append(round((df[f'Speed{num}'].mean() / float(prog)) * 100, 2))
+				speed_list.append(round(df[f'Speed{num}'].mean(), 2))
+				split = speed_to_split(df[f'Speed{num}'].mean())
+				time_list.append(sec_to_split(2000/df[f'Speed{num}'].mean()))
 
-			elif 'Stroke' in col:
-				rate_list.append(df[col].mean())
-				
+			if 'Stroke' in col:
+				rate_list.append(df[f'Stroke{num}'].mean())
 
+			class_type.append(b_class)          # ⇦ keep lists in sync
+			stage_type.append(stage)
 
-
+			
+		
 	except Exception as e:
-		#st.write(e)
+		st.write(e)
 		continue
-
+st.write(num)
+st.write(prog_list)
+st.write(num_list)
+st.write(stage_type)
 #st.write(split_list)
 # build the final dataframe
 prog_df = pd.DataFrame({
@@ -318,7 +328,7 @@ def prog_rep(class_bests, logo_url):
     return buffer
     
 
-_='''
+
 show_prog = False
 show_prog = st.checkbox('Show Best Progs')
 if st.button("Generate Prog Report"):
@@ -334,8 +344,8 @@ if st.button("Generate Prog Report"):
 if show_prog:
 	st.write(class_bests)
 
-'''
 
+'''
 race_display = [] 
 b_class_list = []
 _='''
