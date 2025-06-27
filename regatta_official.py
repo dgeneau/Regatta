@@ -9,6 +9,7 @@ import numpy as np
 import glob
 import plotly.graph_objects as go
 from scipy.signal import savgol_filter
+from pathlib import Path
 
 
 # adding in prognostic times to look across event types and find the gap
@@ -28,6 +29,29 @@ prog_dict = {
 			"W1x":"4.672897196",
                 }
 
+
+
+def convert_seconds_to_time(seconds):
+    # Create a timedelta object
+    time_delta = pd.to_timedelta(seconds, unit='s')
+    
+    # Extract minutes, seconds and milliseconds
+    minutes = time_delta.components.minutes
+    seconds = time_delta.components.seconds
+    milliseconds = time_delta.components.milliseconds
+    #milliseconds = str(milliseconds)
+    #milliseconds = int(milliseconds)
+
+
+    
+    # Format the time as mm:ss.ms
+    formatted_time = f"{minutes:02}:{seconds:02}.{milliseconds:01}"
+    #formatted_time = f"{minutes:02}:{seconds:02}"
+    return formatted_time
+
+def time_to_seconds(time_str):
+    minutes, seconds = map(float, time_str.split(':'))
+    return minutes * 60 + seconds
 
 def speed_to_split(speed):
     seconds = 500/float(speed)
@@ -151,201 +175,10 @@ for regatta in events:
 	event_list.append(regatta)
 
 event = st.selectbox('Select Event for Analysis', event_list)
-
-race_list = glob.glob(f'{file_path}/{event}/**.csv')
-
-_='''
-Hard coding in the prog analysis
-
-- need prog per boat per race
-'''
-
-_='''
-from pathlib import Path
-class_type          = []
-boat_country_list   = []
-prog_list           = []
-speed_list          = []
-rate_list           = []
-stage_type          = []
-time_list           = []
-split_list          = []
-
-for data_file in race_list:
-	# grab the class from the filename first, so we have it even if read_csv fails
-	b_class = Path(data_file).stem.split('_')[3]
-	stage = Path(data_file).stem.split('_')[4]
-	try:
-		df = pd.read_csv(data_file, delimiter=';')
-		
-		prog = prog_dict[b_class]
-		
-		
-		num_list            = []
-		for col in df.columns[1:]:
-			
-			num = col[-1]
-			num_list.append(num)
-
-			num_list.append(float(num))
-			if 'ShortName' in col:
-				boat_country_list.append(df[f'ShortName{num}'].iloc[0])
-			if 'Speed' in col:
-				prog_list.append(round((df[f'Speed{num}'].mean() / float(prog)) * 100, 2))
-				speed_list.append(round(df[f'Speed{num}'].mean(), 2))
-				split = speed_to_split(df[f'Speed{num}'].mean())
-				time_list.append(sec_to_split(2000/df[f'Speed{num}'].mean()))
-
-			if 'Stroke' in col:
-				rate_list.append(df[f'Stroke{num}'].mean())
-
-			class_type.append(b_class)          # ⇦ keep lists in sync
-			stage_type.append(stage)
-
-			
-		
-	except Exception as e:
-		st.write(e)
-		continue
-st.write(num)
-st.write(prog_list)
-st.write(num_list)
-st.write(stage_type)
-#st.write(split_list)
-# build the final dataframe
-prog_df = pd.DataFrame({
-    'Boat'  : boat_country_list,
-	'Race Stage' : stage_type,
-    'Class' : class_type,
-    'Prog'  : prog_list, 
-	'Rate' : rate_list,
-    'Speed'  : speed_list,
-	#'Average Split' : split_list, 
-	#'Race Time (GPS)': time_list
-})
-
-class_bests = prog_df.groupby('Class').max()
-#class_bests['Prog'] = class_bests['Prog'].round(2)
-#class_bests['Speed'] = class_bests['Speed'].round(2)
-
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.platypus import Table, TableStyle
-from reportlab.lib.units import inch
-from reportlab.lib.utils import ImageReader
-
-import matplotlib.pyplot as plt
-from io import BytesIO
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Image, LongTable,
-    TableStyle, PageBreak
-)
-from reportlab.lib.styles import getSampleStyleSheet
+day_list =  glob.glob(f'{file_path}/{event}/**')
+race_list = glob.glob(f'{file_path}/{event}/**/**.csv')
 
 
-can_row_logo = "https://images.squarespace-cdn.com/content/v1/5f63780dbc8d16716cca706a/1604523297465-6BAIW9AOVGRI7PARBCH3/rowing-canada-new-logo.jpg"
-
-
-
-def prog_rep(class_bests, logo_url):
-
-    """
-    Build a multi-page PDF race report whose results table can run
-    over any number of pages. The plot is forced onto its own page.
-    """
-
-
-    buffer = BytesIO()
-    doc    = SimpleDocTemplate(
-        buffer,
-        pagesize=letter,
-        leftMargin=50, rightMargin=50,                                                                           
-        topMargin=50,  bottomMargin=50
-    )
-    styles = getSampleStyleSheet()
-    story  = []
-    # ── Logo + title row ────────────────────────────────────────────────────
-    logo_w, logo_h = 50, 50
-    story.append(
-        Image(logo_url, width=logo_w, height=logo_h, hAlign="LEFT")
-    )
-    story.append(
-        Paragraph("<b>Daily Prognostic Report</b>", styles["Title"])
-    )
-    story.append(Spacer(1, 12))
-
-    # ── Results table (LongTable → spills automatically) ───────────────────
-    data      = [class_bests.columns.tolist()] + class_bests.values.tolist()
-    col_w     = [0.5 * inch] + [0.85 * inch] * (len(data[0]) - 1)
-    table     = LongTable(
-        data, colWidths=col_w, repeatRows=1           # header repeats
-    )
-
-    # --- Identify the column that holds the % values --------------------------
-    prog_col = class_bests.columns.tolist().index("Prog")
-    
-    # --- Base table style -----------------------------------------------------
-    style = TableStyle([
-        ("LINEABOVE", (0, 0), (-1, 0), 1, colors.black),
-        ("LINEABOVE", (0, 1), (-1, 1), 1, colors.black),
-        ("LINEBELOW", (0, -1), (-1, -1), 1, colors.black),
-        ("ALIGN",     (0, 0), (-1, -1), "CENTER"),
-        ("FONTSIZE",  (0, 0), (-1, -1), 8),
-    ])
-
-    # --- Add a text-colour command for every data row -------------------------
-    # row 0 is the header, so start at row 1
-    for row_idx, row in enumerate(class_bests.itertuples(index=False), start=1):
-        # pull the value, strip '%' if it is already a string like "87 %"
-        raw = row[prog_col]
-        pct = float(str(raw).replace("%", ""))          # → 87.0 for "87 %"
-
-        # map 0 → blue, 100 → red using a simple linear gradient in RGB
-        # feel free to tweak the mapping for a different palette
-        lo, hi = 70.0, 105.0                        # adjust if the range changes
-        if pct <= lo:
-            closeness = 0                           # pure blue
-        else:
-            closeness = min((pct - lo) / (hi - lo), 1)   # 70→0 … 100→1
-
-        colour = colors.Color(red=closeness,
-                            green=0,
-                            blue=1 - closeness)
-
-        style.add("TEXTCOLOR", (prog_col, row_idx), (prog_col, row_idx), colour)
-
-    # --- Build the table with the augmented style -----------------------------
-    table = LongTable(data, colWidths=col_w, repeatRows=1)
-    table.setStyle(style)
-
-    story.append(table)
-    
-
-    # ── Build PDF ───────────────────────────────────────────────────────────
-    doc.build(story)
-    buffer.seek(0)
-    return buffer
-    
-
-
-show_prog = False
-show_prog = st.checkbox('Show Best Progs')
-if st.button("Generate Prog Report"):
-    pdf_data = prog_rep(class_bests, can_row_logo)
-    st.download_button(
-        label="Download Training Report",
-        data=pdf_data,
-        file_name=f"Prog_report.pdf",
-        mime="application/pdf"
-    )
-
-
-if show_prog:
-	st.write(class_bests)
-
-
-'''
 race_display = [] 
 b_class_list = []
 _='''
@@ -357,18 +190,14 @@ if 'WCH_2024_1' or 'U23WCH_2024_1' == event:
 		race_display.append('_'.join(parts[3:]))
 '''
 
-if event == 'ECH_2025_1': 
-	for file in race_list: 
-		race_display.append(file.split('/')[-1].split('.')[0])
-
-elif event == 'WCP2_2025_1': 
+_='''
+if '2025' in event:
 	for file in race_list:
 		display = file.split('/')[-1].split('.')[0]
 		race_display.append(display)
 		b_class = display.split('_')[3]
 		b_class_list.append(b_class)
 		
-
 
 
 else: 
@@ -384,30 +213,6 @@ races = st.multiselect('Select Race(s) for Analysis', race_display)
 
 
 
-def convert_seconds_to_time(seconds):
-    # Create a timedelta object
-    time_delta = pd.to_timedelta(seconds, unit='s')
-    
-    # Extract minutes, seconds and milliseconds
-    minutes = time_delta.components.minutes
-    seconds = time_delta.components.seconds
-    milliseconds = time_delta.components.milliseconds
-    #milliseconds = str(milliseconds)
-    #milliseconds = int(milliseconds)
-
-
-    
-    # Format the time as mm:ss.ms
-    formatted_time = f"{minutes:02}:{seconds:02}.{milliseconds:01}"
-    #formatted_time = f"{minutes:02}:{seconds:02}"
-    return formatted_time
-
-def time_to_seconds(time_str):
-    minutes, seconds = map(float, time_str.split(':'))
-    return minutes * 60 + seconds
-
-
-
 if len(races)<1: 
 	st.header('Select Race for Analysis')
 	st.write('Select one or multiple races from the select-box above')
@@ -420,12 +225,14 @@ if races is not None:
 	if 'Paris' or 'ECH_2025_1' in event:
 		for i, race in enumerate(races):
 
+
 			sel_b_class = b_class_list[i]
 			data = f'{file_path}/{event}/{race}.csv'
 			df = pd.read_csv(data, delimiter=';')
 			df.columns = [f"{col}_{i+1}" for col in df.columns]
 			dataframes.append(df)
 			selected_b_class.append(sel_b_class)
+
 
 	else: 
 
@@ -440,7 +247,65 @@ if races is not None:
 			sel_b_class = b_class_list[i]
 			selected_b_class.append(sel_b_class)
 
-	# Concatenate all dataframes horizontally
+
+	'''
+
+# Build race metadata map
+race_info = []
+
+for file in race_list:
+	file_name = Path(file).stem
+	phase = file_name.split('/')[-1].split('.')[0].split('_')[-1]
+	parts = file_name.split('_')
+
+	if '2025' in event:
+		display = file_name  # Full filename
+		b_class = parts[3] if len(parts) > 3 else 'Unknown'
+	else:
+		display = parts[-1]
+		b_class = parts[0] if len(parts) > 0 else 'Unknown'
+
+	race_info.append({
+		"display": display,
+		"file_path": file,
+		"b_class": b_class, 
+		"Phase": phase
+	})
+
+# Use sorted race names for UI
+race_display = sorted([r["display"] for r in race_info])
+races = st.multiselect("Select Race(s) for Analysis", race_display)
+
+if not races:
+	st.header("Select Race for Analysis")
+	st.write("Select one or multiple races from the select-box above")
+	st.stop()
+
+# Load selected races safely
+dataframes = []
+selected_b_class = []
+
+# Detect if special naming convention applies
+special_event = 'Paris' in event or 'ECH_2025_1' in event
+
+for i, race in enumerate(races):
+	selected_race = next((r for r in race_info if r["display"] == race), None)
+	
+	if selected_race is None:
+		st.write(f"Could not find file for selected race: {race}")
+		continue
+
+	data_path = selected_race["file_path"]
+
+	try:
+		df = pd.read_csv(data_path, delimiter=';')
+		df.columns = [f"{col}_{i+1}" for col in df.columns]
+
+		dataframes.append(df)
+		selected_b_class.append(selected_race["b_class"])
+	except Exception as e:
+		st.write(f"Failed to load {data_path}: {e}")
+
 	df = pd.concat(dataframes, axis=1)
 
 	distance_columns = [col for col in df.columns if 'Distance' in col]
@@ -463,7 +328,8 @@ if races is not None:
 	    col_names.append(str(dis)+'m')
 		
 	selected_columns = [col for col in df.columns if 'ShortName' in col]
-	phase = data.split('/')[-1].split('.')[0].split('_')[-1]
+	phase = selected_race['Phase']
+	#phase = data.split('/')[-1].split('.')[0].split('_')[-1]
 
 
 	speed_columns = [col for col in df.columns if col.startswith('Speed')]
