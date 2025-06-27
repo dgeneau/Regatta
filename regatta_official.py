@@ -290,6 +290,8 @@ special_event = 'Paris' in event or 'ECH_2025_1' in event
 
 for i, race in enumerate(races):
 	selected_race = next((r for r in race_info if r["display"] == race), None)
+
+	
 	
 	if selected_race is None:
 		st.write(f"Could not find file for selected race: {race}")
@@ -298,6 +300,9 @@ for i, race in enumerate(races):
 	data_path = selected_race["file_path"]
 
 	try:
+
+
+		
 		df = pd.read_csv(data_path, delimiter=';')
 		df.columns = [f"{col}_{i+1}" for col in df.columns]
 
@@ -306,337 +311,337 @@ for i, race in enumerate(races):
 	except Exception as e:
 		st.write(f"Failed to load {data_path}: {e}")
 
-	df = pd.concat(dataframes, axis=1)
+df = pd.concat(dataframes, axis=1)
 
-	distance_columns = [col for col in df.columns if 'Distance' in col]
-	columns_to_drop = distance_columns[1:]  # Keep the first 'Distance' column and drop the rest
+distance_columns = [col for col in df.columns if 'Distance' in col]
+columns_to_drop = distance_columns[1:]  # Keep the first 'Distance' column and drop the rest
 
-	df.drop(columns=columns_to_drop, inplace=True)
-	df.rename(columns={'Distance_1': 'Distance'}, inplace=True)
+df.drop(columns=columns_to_drop, inplace=True)
+df.rename(columns={'Distance_1': 'Distance'}, inplace=True)
+
+
+
+
+
+#df = pd.read_csv(data, delimiter=';')
+
+distance_list = df['Distance']
+
+
+col_names = []
+for dis in distance_list:
+	col_names.append(str(dis)+'m')
 	
+selected_columns = [col for col in df.columns if 'ShortName' in col]
+phase = selected_race['Phase']
+#phase = data.split('/')[-1].split('.')[0].split('_')[-1]
+
+
+speed_columns = [col for col in df.columns if col.startswith('Speed')]
+stroke_columns = [col for col in df.columns if col.startswith('Stroke')]
+name_list  = [col for col in df.columns if col.startswith('ShortName')]
+splits_columns = [col for col in df.columns if col.startswith('Time')]
+times = df[splits_columns].iloc[-1,:]
+times_in_seconds = [(label, time_to_seconds(time)) for label, time in times.items()]
+
+# Sort the list by the time in seconds
+sorted_times = sorted(times_in_seconds, key=lambda x: x[1])
+
+rank_dict = {label: rank+1 for rank, (label, _) in enumerate(sorted_times)}
+
+# Create an array of the ranks based on the original order
+ranks = [rank_dict[label] for label in times.keys()]
+
+
+
+#Plotting Things
+
+country_list = []
+lane_list = []
+err_list = []
+plain_country = []
+
+for col in name_list:
+	lane = col.split('_')[0][-1]
+	lane_list.append(lane)
+	plain_country.append(df[col][0])
 	
 
+	country_list.append(f'{df[col][0]}, {lane}')
+	#country_list.append(df[col][0])
 
 
-	#df = pd.read_csv(data, delimiter=';')
-
-	distance_list = df['Distance']
 
 
-	col_names = []
-	for dis in distance_list:
-	    col_names.append(str(dis)+'m')
+
+lane_det = st.checkbox('Overall Timing Info')
+#lane_det = False
+
+
+if lane_det == True:
+	st.header('Timing Summary')
+	st.write('Approximated final times as calculated by race GPS Data.')
+
+	#for country in country_list:
+	final_times = []
+	for lane in range(0, len(country_list)):
+		#total_time = convert_seconds_to_time(float(times_in_seconds[country_list.index(country)][1]))
+		country = country_list[lane]
+		total_time = convert_seconds_to_time(float(times_in_seconds[country_list.index(country)][1]))
+		final_times.append(total_time)
+
+	times = pd.DataFrame()
+	times['Country'] = plain_country
+	times['Lane'] = lane_list
+	times['Race Time'] = final_times
+	st.dataframe(times.set_index(times.columns[0]), use_container_width = True)
 		
-	selected_columns = [col for col in df.columns if 'ShortName' in col]
-	phase = selected_race['Phase']
-	#phase = data.split('/')[-1].split('.')[0].split('_')[-1]
+
+st.header('Graphical Analysis')
+
+_='''
+
+lane_filter = st.checkbox('Filter Results by Lane')
 
 
-	speed_columns = [col for col in df.columns if col.startswith('Speed')]
-	stroke_columns = [col for col in df.columns if col.startswith('Stroke')]
-	name_list  = [col for col in df.columns if col.startswith('ShortName')]
-	splits_columns = [col for col in df.columns if col.startswith('Time')]
-	times = df[splits_columns].iloc[-1,:]
-	times_in_seconds = [(label, time_to_seconds(time)) for label, time in times.items()]
+if lane_filter == True: 
+	lane_sel = st.selectbox('Select Lanes for Analysis', range(1,len(country_list)+1))
+	lane_sel = str(lane_sel)
+	countries = [country for country in country_list if lane_sel in country]
 
-	# Sort the list by the time in seconds
-	sorted_times = sorted(times_in_seconds, key=lambda x: x[1])
+	st.write(df)
 
-	rank_dict = {label: rank+1 for rank, (label, _) in enumerate(sorted_times)}
+'''
 
-	# Create an array of the ranks based on the original order
-	ranks = [rank_dict[label] for label in times.keys()]
+col1, col2  = st.columns([6, 4])
 
+vel_fig = go.Figure()
 
-
-	#Plotting Things
-
-	country_list = []
-	lane_list = []
-	err_list = []
-	plain_country = []
-
-	for col in name_list:
-		lane = col.split('_')[0][-1]
-		lane_list.append(lane)
-		plain_country.append(df[col][0])
-		
-
-		country_list.append(f'{df[col][0]}, {lane}')
-		#country_list.append(df[col][0])
-
-
-
+for i in range(0,len(speed_columns)):
 
 	
-	lane_det = st.checkbox('Overall Timing Info')
-	#lane_det = False
+	if df[speed_columns[i]].mean()>.5:
+		vel_fig.add_trace(go.Scatter(y=savgol_filter(df[speed_columns[i]],30,2),
+									x = df['Distance'],
+													mode='lines',
+													name=f'{country_list[i]}'))
+	else: 
+		st.write(f'Error in Data for Country {country_list[i]}')
+		err_list.append(i)
 
+vel_fig.update_layout(
+title='Boat Velocity Vs. Distance',
+xaxis_title='Distance (m)',
+yaxis_title='Velocity (m/s)')
 
-	if lane_det == True:
-		st.header('Timing Summary')
-		st.write('Approximated final times as calculated by race GPS Data.')
+with col1:
+	st.plotly_chart(vel_fig, use_container_width=True)
 
-		#for country in country_list:
-		final_times = []
-		for lane in range(0, len(country_list)):
-			#total_time = convert_seconds_to_time(float(times_in_seconds[country_list.index(country)][1]))
-			country = country_list[lane]
-			total_time = convert_seconds_to_time(float(times_in_seconds[country_list.index(country)][1]))
-			final_times.append(total_time)
+#SR
+stroke_fig = go.Figure()
+for i in range(0,len(stroke_columns)):
+	try:
+		stroke_fig.add_trace(go.Scatter(y=savgol_filter(df[stroke_columns[i]][df[stroke_columns[i]]>20],30,2),
+									x = df['Distance'],
+													mode='lines',
+													name=country_list[i]))
+	except:
+		pass
 
-		times = pd.DataFrame()
-		times['Country'] = plain_country
-		times['Lane'] = lane_list
-		times['Race Time'] = final_times
-		st.dataframe(times.set_index(times.columns[0]), use_container_width = True)
-			
-
-	st.header('Graphical Analysis')
-
-	_='''
-
-	lane_filter = st.checkbox('Filter Results by Lane')
-
-
-	if lane_filter == True: 
-		lane_sel = st.selectbox('Select Lanes for Analysis', range(1,len(country_list)+1))
-		lane_sel = str(lane_sel)
-		countries = [country for country in country_list if lane_sel in country]
-
-		st.write(df)
-
-	'''
-
-	col1, col2  = st.columns([6, 4])
-
-	vel_fig = go.Figure()
-	
-	for i in range(0,len(speed_columns)):
-
-		
-		if df[speed_columns[i]].mean()>.5:
-			vel_fig.add_trace(go.Scatter(y=savgol_filter(df[speed_columns[i]],30,2),
-										x = df['Distance'],
-		                                              mode='lines',
-		                                              name=f'{country_list[i]}'))
-		else: 
-			st.write(f'Error in Data for Country {country_list[i]}')
-			err_list.append(i)
-
-	vel_fig.update_layout(
-    title='Boat Velocity Vs. Distance',
-    xaxis_title='Distance (m)',
-    yaxis_title='Velocity (m/s)')
-
-	with col1:
-		st.plotly_chart(vel_fig, use_container_width=True)
-
-	#SR
-	stroke_fig = go.Figure()
-	for i in range(0,len(stroke_columns)):
-		try:
-			stroke_fig.add_trace(go.Scatter(y=savgol_filter(df[stroke_columns[i]][df[stroke_columns[i]]>20],30,2),
-										x = df['Distance'],
-		                                              mode='lines',
-		                                              name=country_list[i]))
-		except:
-			pass
-
-	stroke_fig.update_layout(
-    title='Boat Stroke Rate Vs. Distance',
-    xaxis_title='Distance (m)',
-    yaxis_title='Stroke Rate (SPM)')
+stroke_fig.update_layout(
+title='Boat Stroke Rate Vs. Distance',
+xaxis_title='Distance (m)',
+yaxis_title='Stroke Rate (SPM)')
 
 
 
-	with col2:
-		st.plotly_chart(stroke_fig, use_container_width=True)
+with col2:
+	st.plotly_chart(stroke_fig, use_container_width=True)
 
 
-	
 
-	one_index = np.where(df['Distance'] == 250)[0][0]
-	two_index = np.where(df['Distance'] == 500)[0][0]
-	three_index = np.where(df['Distance'] == 750)[0][0]
-	four_index = np.where(df['Distance'] == 1000)[0][0]
-	five_index = np.where(df['Distance'] == 1250)[0][0]
-	six_index = np.where(df['Distance'] == 1500)[0][0]
-	seven_index = np.where(df['Distance'] == 1750)[0][0]
-	eight_index = np.where(df['Distance'] == 2000)[0][0]
 
-	avg_vel_250 = df[speed_columns][:one_index].mean()
-	avg_vel_500 = df[speed_columns][one_index:two_index].mean()
-	avg_vel_750 = df[speed_columns][two_index:three_index].mean()
-	avg_vel_1000 = df[speed_columns][three_index:four_index].mean()
-	avg_vel_1250 = df[speed_columns][four_index:five_index].mean()
-	avg_vel_1500 = df[speed_columns][five_index:six_index].mean()
-	avg_vel_1750 = df[speed_columns][six_index:seven_index].mean()
-	avg_vel_2000 = df[speed_columns][seven_index:eight_index].mean()
-	avg_vel_total = df[speed_columns].mean()
+one_index = np.where(df['Distance'] == 250)[0][0]
+two_index = np.where(df['Distance'] == 500)[0][0]
+three_index = np.where(df['Distance'] == 750)[0][0]
+four_index = np.where(df['Distance'] == 1000)[0][0]
+five_index = np.where(df['Distance'] == 1250)[0][0]
+six_index = np.where(df['Distance'] == 1500)[0][0]
+seven_index = np.where(df['Distance'] == 1750)[0][0]
+eight_index = np.where(df['Distance'] == 2000)[0][0]
 
-	avg_sr_250 = df[stroke_columns][:one_index].mean()
-	avg_sr_500 = df[stroke_columns][one_index:two_index].mean()
-	avg_sr_750 = df[stroke_columns][two_index:three_index].mean()
-	avg_sr_1000 = df[stroke_columns][three_index:four_index].mean()
-	avg_sr_1250 = df[stroke_columns][four_index:five_index].mean()
-	avg_sr_1500 = df[stroke_columns][five_index:six_index].mean()
-	avg_sr_1750 = df[stroke_columns][six_index:seven_index].mean()
-	avg_sr_2000 = df[stroke_columns][seven_index:eight_index].mean()
-	avg_sr_total = df[stroke_columns].mean()
+avg_vel_250 = df[speed_columns][:one_index].mean()
+avg_vel_500 = df[speed_columns][one_index:two_index].mean()
+avg_vel_750 = df[speed_columns][two_index:three_index].mean()
+avg_vel_1000 = df[speed_columns][three_index:four_index].mean()
+avg_vel_1250 = df[speed_columns][four_index:five_index].mean()
+avg_vel_1500 = df[speed_columns][five_index:six_index].mean()
+avg_vel_1750 = df[speed_columns][six_index:seven_index].mean()
+avg_vel_2000 = df[speed_columns][seven_index:eight_index].mean()
+avg_vel_total = df[speed_columns].mean()
 
-	
+avg_sr_250 = df[stroke_columns][:one_index].mean()
+avg_sr_500 = df[stroke_columns][one_index:two_index].mean()
+avg_sr_750 = df[stroke_columns][two_index:three_index].mean()
+avg_sr_1000 = df[stroke_columns][three_index:four_index].mean()
+avg_sr_1250 = df[stroke_columns][four_index:five_index].mean()
+avg_sr_1500 = df[stroke_columns][five_index:six_index].mean()
+avg_sr_1750 = df[stroke_columns][six_index:seven_index].mean()
+avg_sr_2000 = df[stroke_columns][seven_index:eight_index].mean()
+avg_sr_total = df[stroke_columns].mean()
 
-	data = {
-    'Country, Lane': [],
-    'Rank': [],
-    '250m Split': [],
-    '500m Split': [],
-    '750m Split': [],
-    '1000m Split': [],
-    '1250m Split': [],
-    '1500m Split': [],
-    '1750m Split': [],
-    '2000m Split': [], 
-    '250m Stroke': [],
-    '500m Stroke': [],
-    '750m Stroke': [],
-    '1000m Stroke': [],
-    '1250m Stroke': [],
-    '1500m Stroke': [],
-    '1750m Stroke': [],
-    '2000m Stroke': [],
-    '250m Speed': [],
-    '500m Speed': [],
-    '750m Speed': [],
-    '1000m Speed': [],
-    '1250m Speed': [],
-    '1500m Speed': [],
-    '1750m Speed': [],
-    '2000m Speed': [],
+
+
+data = {
+'Country, Lane': [],
+'Rank': [],
+'250m Split': [],
+'500m Split': [],
+'750m Split': [],
+'1000m Split': [],
+'1250m Split': [],
+'1500m Split': [],
+'1750m Split': [],
+'2000m Split': [], 
+'250m Stroke': [],
+'500m Stroke': [],
+'750m Stroke': [],
+'1000m Stroke': [],
+'1250m Stroke': [],
+'1500m Stroke': [],
+'1750m Stroke': [],
+'2000m Stroke': [],
+'250m Speed': [],
+'500m Speed': [],
+'750m Speed': [],
+'1000m Speed': [],
+'1250m Speed': [],
+'1500m Speed': [],
+'1750m Speed': [],
+'2000m Speed': [],
 
 }
+
+
+for i in range(len(avg_vel_250)):
+	try:
 	
+		data['Country, Lane'].append(country_list[i])
+		data['Rank'].append(ranks[i])
+		data['250m Split'].append(convert_seconds_to_time(500 / avg_vel_250[i]))
+		data['500m Split'].append(convert_seconds_to_time(500 / avg_vel_500[i]))
+		data['750m Split'].append(convert_seconds_to_time(500 / avg_vel_750[i]))
+		data['1000m Split'].append(convert_seconds_to_time(500 / avg_vel_1000[i]))
+		data['1250m Split'].append(convert_seconds_to_time(500 / avg_vel_1250[i]))
+		data['1500m Split'].append(convert_seconds_to_time(500 / avg_vel_1500[i]))
+		data['1750m Split'].append(convert_seconds_to_time(500 / avg_vel_1750[i]))
+		data['2000m Split'].append(convert_seconds_to_time(500 / avg_vel_2000[i]))
+		data['250m Stroke'].append(round(avg_sr_250[i],2))
+		data['500m Stroke'].append(round(avg_sr_500[i],2))
+		data['750m Stroke'].append(round(avg_sr_750[i],2))
+		data['1000m Stroke'].append(round(avg_sr_1000[i],2))
+		data['1250m Stroke'].append(round(avg_sr_1250[i],2))
+		data['1500m Stroke'].append(round(avg_sr_1500[i],2))
+		data['1750m Stroke'].append(round(avg_sr_1750[i],2))
+		data['2000m Stroke'].append(round(avg_sr_2000[i],2))
+		data['250m Speed'].append(round(avg_vel_250[i], 2))
+		data['500m Speed'].append(round(avg_vel_500[i], 2))
+		data['750m Speed'].append(round(avg_vel_750[i], 2))
+		data['1000m Speed'].append(round(avg_vel_1000[i], 2))
+		data['1250m Speed'].append(round(avg_vel_1250[i], 2))
+		data['1500m Speed'].append(round(avg_vel_1500[i], 2))
+		data['1750m Speed'].append(round(avg_vel_1750[i], 2))
+		data['2000m Speed'].append(round(avg_vel_2000[i], 2))
+
+	except:
+		pass
+
+
+for err in err_list:	
+	data['Country, Lane'].pop(err)
+	data['Rank'].pop(err)	
+
+splits_unsorted = pd.DataFrame(data)
+splits = splits_unsorted.sort_values(by = 'Rank').reset_index(drop=True)
+
+
+
+#highlight_row = splits[splits['Country, Lane'].str.contains('CAN')].index[0] if 'CAN' in splits['Country, Lane'].values else None
+highlight_row = splits[splits['Country, Lane'].str.contains('CAN')].index[0] if splits['Country, Lane'].str.contains('CAN').any() else None
+
+# Define colors for the cells
+fill_colors = [['aliceblue' for _ in range(len(splits))] for _ in splits.columns]
+
+# If 'CAN' exists, highlight the corresponding row
+if highlight_row is not None:
+	for i in range(len(splits.columns)):
+		fill_colors[i][highlight_row] = 'palevioletred'
+
+
+
+splits_plot = go.Figure()
+
+transposed_split = splits_unsorted.T
+transposed_split.columns = transposed_split.iloc[0,:]
+transposed_split = transposed_split.iloc[2:, :]
+transposed_split.columns = rename_duplicate_columns(transposed_split.columns)
+
+
+
+for col in transposed_split.columns:
+	splits_plot.add_trace(go.Scatter(y=pd.to_datetime(transposed_split[col]), 
+		x = [250, 500, 750, 1000, 1250, 1500, 1750, 2000], 
+		name = col))
+
+splits_plot.update_layout(
+title='Race Split Vs. Distance',
+xaxis_title='Distance (m)',
+yaxis=dict(
+	title='Time for 500m',
+	autorange='reversed',  # Invert the y-axis
+))
 	
-	for i in range(len(avg_vel_250)):
-		try:
-		
-			data['Country, Lane'].append(country_list[i])
-			data['Rank'].append(ranks[i])
-			data['250m Split'].append(convert_seconds_to_time(500 / avg_vel_250[i]))
-			data['500m Split'].append(convert_seconds_to_time(500 / avg_vel_500[i]))
-			data['750m Split'].append(convert_seconds_to_time(500 / avg_vel_750[i]))
-			data['1000m Split'].append(convert_seconds_to_time(500 / avg_vel_1000[i]))
-			data['1250m Split'].append(convert_seconds_to_time(500 / avg_vel_1250[i]))
-			data['1500m Split'].append(convert_seconds_to_time(500 / avg_vel_1500[i]))
-			data['1750m Split'].append(convert_seconds_to_time(500 / avg_vel_1750[i]))
-			data['2000m Split'].append(convert_seconds_to_time(500 / avg_vel_2000[i]))
-			data['250m Stroke'].append(round(avg_sr_250[i],2))
-			data['500m Stroke'].append(round(avg_sr_500[i],2))
-			data['750m Stroke'].append(round(avg_sr_750[i],2))
-			data['1000m Stroke'].append(round(avg_sr_1000[i],2))
-			data['1250m Stroke'].append(round(avg_sr_1250[i],2))
-			data['1500m Stroke'].append(round(avg_sr_1500[i],2))
-			data['1750m Stroke'].append(round(avg_sr_1750[i],2))
-			data['2000m Stroke'].append(round(avg_sr_2000[i],2))
-			data['250m Speed'].append(round(avg_vel_250[i], 2))
-			data['500m Speed'].append(round(avg_vel_500[i], 2))
-			data['750m Speed'].append(round(avg_vel_750[i], 2))
-			data['1000m Speed'].append(round(avg_vel_1000[i], 2))
-			data['1250m Speed'].append(round(avg_vel_1250[i], 2))
-			data['1500m Speed'].append(round(avg_vel_1500[i], 2))
-			data['1750m Speed'].append(round(avg_vel_1750[i], 2))
-			data['2000m Speed'].append(round(avg_vel_2000[i], 2))
 
-		except:
-			pass
+st.plotly_chart(splits_plot, use_container_width = True)
+
+first_two_cols = splits.iloc[:, :2]
+remaining_cols = splits.iloc[:, 2:]
+distance_columns = ['250m', '500m', '750m', '1000m', '1250m', '1500m', '1750m', '2000m']
 
 
-	for err in err_list:	
-		data['Country, Lane'].pop(err)
-		data['Rank'].pop(err)	
+# Create a new DataFrame to hold the concatenated values
+concatenated_splits = pd.DataFrame(first_two_cols)
+
+# Iterate through the columns in steps of 8
+for j in range(8):
+	new_col = {}
+	col_1 = remaining_cols.columns[j] if j < remaining_cols.shape[1] else None
+	col_9 = remaining_cols.columns[j+8] if (j+8) < remaining_cols.shape[1] else None
+	col_17 = remaining_cols.columns[j+16] if (j+16) < remaining_cols.shape[1] else None
 	
-	splits_unsorted = pd.DataFrame(data)
-	splits = splits_unsorted.sort_values(by = 'Rank').reset_index(drop=True)
-
-
+	concatenated_values = remaining_cols.apply(lambda row: '<br>'.join([str(row[col]) for col in [col_1, col_9, col_17] if col is not None]), axis=1)
 	
-	#highlight_row = splits[splits['Country, Lane'].str.contains('CAN')].index[0] if 'CAN' in splits['Country, Lane'].values else None
-	highlight_row = splits[splits['Country, Lane'].str.contains('CAN')].index[0] if splits['Country, Lane'].str.contains('CAN').any() else None
-
-	# Define colors for the cells
-	fill_colors = [['aliceblue' for _ in range(len(splits))] for _ in splits.columns]
-
-	# If 'CAN' exists, highlight the corresponding row
-	if highlight_row is not None:
-	    for i in range(len(splits.columns)):
-	        fill_colors[i][highlight_row] = 'palevioletred'
-
-
-
-	splits_plot = go.Figure()
-
-	transposed_split = splits_unsorted.T
-	transposed_split.columns = transposed_split.iloc[0,:]
-	transposed_split = transposed_split.iloc[2:, :]
-	transposed_split.columns = rename_duplicate_columns(transposed_split.columns)
-
-
+	if j < len(distance_columns):
+		new_col[distance_columns[j]] = concatenated_values
 	
-	for col in transposed_split.columns:
-		splits_plot.add_trace(go.Scatter(y=pd.to_datetime(transposed_split[col]), 
-			x = [250, 500, 750, 1000, 1250, 1500, 1750, 2000], 
-			name = col))
-
-	splits_plot.update_layout(
-    title='Race Split Vs. Distance',
-    xaxis_title='Distance (m)',
-    yaxis=dict(
-        title='Time for 500m',
-        autorange='reversed',  # Invert the y-axis
-    ))
-		
-
-	st.plotly_chart(splits_plot, use_container_width = True)
-
-	first_two_cols = splits.iloc[:, :2]
-	remaining_cols = splits.iloc[:, 2:]
-	distance_columns = ['250m', '500m', '750m', '1000m', '1250m', '1500m', '1750m', '2000m']
+	concatenated_splits = pd.concat([concatenated_splits, pd.DataFrame(new_col)], axis=1)
 
 
-	# Create a new DataFrame to hold the concatenated values
-	concatenated_splits = pd.DataFrame(first_two_cols)
-
-	# Iterate through the columns in steps of 8
-	for j in range(8):
-	    new_col = {}
-	    col_1 = remaining_cols.columns[j] if j < remaining_cols.shape[1] else None
-	    col_9 = remaining_cols.columns[j+8] if (j+8) < remaining_cols.shape[1] else None
-	    col_17 = remaining_cols.columns[j+16] if (j+16) < remaining_cols.shape[1] else None
-	    
-	    concatenated_values = remaining_cols.apply(lambda row: '<br>'.join([str(row[col]) for col in [col_1, col_9, col_17] if col is not None]), axis=1)
-	    
-	    if j < len(distance_columns):
-	        new_col[distance_columns[j]] = concatenated_values
-	    
-	    concatenated_splits = pd.concat([concatenated_splits, pd.DataFrame(new_col)], axis=1)
-
-
-	st.header('Race Split Breakdown')
-	st.write('Data provided by country in the order of split, stroke rate, average velocity for each 250m section')
-	#concatenated_splits = concatenated_splits.iloc[:, :-8]
-	splits_fig  = go.Figure(data=[go.Table(
-	    header=dict(values=list(concatenated_splits.columns),
-	                fill_color='grey',
-	                font=dict(size=16, color='white'),
-	                align='left'),
-	    cells=dict(values=[concatenated_splits[col] for col in concatenated_splits.columns],
-	               fill=dict(color=fill_colors),
-	               font=dict(size=14, color='black'),
-	               align='left'))
-	])
-	splits_fig.update_layout(height=800) 
-	st.plotly_chart(splits_fig, use_container_width=True)
+st.header('Race Split Breakdown')
+st.write('Data provided by country in the order of split, stroke rate, average velocity for each 250m section')
+#concatenated_splits = concatenated_splits.iloc[:, :-8]
+splits_fig  = go.Figure(data=[go.Table(
+	header=dict(values=list(concatenated_splits.columns),
+				fill_color='grey',
+				font=dict(size=16, color='white'),
+				align='left'),
+	cells=dict(values=[concatenated_splits[col] for col in concatenated_splits.columns],
+				fill=dict(color=fill_colors),
+				font=dict(size=14, color='black'),
+				align='left'))
+])
+splits_fig.update_layout(height=800) 
+st.plotly_chart(splits_fig, use_container_width=True)
 
 
 
