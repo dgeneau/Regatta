@@ -177,6 +177,8 @@ split_list        = []
 
 for data_file in race_list:
     b_class = Path(data_file).stem.split('_')[3]
+    if b_class[0] == 'B': 
+        b_class = b_class.split('B')[-1] 
     stage   = Path(data_file).stem.split('_')[4]
     
     try:
