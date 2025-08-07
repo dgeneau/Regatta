@@ -81,6 +81,7 @@ def speed_to_split(speed):
 event = st.selectbox('Select Event to Analyze', races['competition'].unique())
 event_races = races[races['competition']== event]
 
+
 days= pd.DataFrame({'datetime': pd.to_datetime(event_races['Date'])})
 
 
@@ -112,6 +113,7 @@ for BC in day_data['boatClass'].unique():
         race_times = race_times[race_times['d2000m_Rank'] == 1]
 
         if not race_times.empty:
+            
             time_sec = pd.to_numeric(race_times['d2000m_TotalSeconds'].iloc[0], errors='coerce')
             if not pd.isna(time_sec) and prog:
                 prognostic = round(((2000 / float(time_sec)) / float(prog))*100,2)
