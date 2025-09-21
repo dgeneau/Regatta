@@ -10,7 +10,7 @@ import glob
 import plotly.graph_objects as go
 from scipy.signal import savgol_filter
 from pathlib import Path
-
+import plotly.express as px
 
 # adding in prognostic times to look across event types and find the gap
 
@@ -416,14 +416,21 @@ if lane_filter == True:
 col1, col2  = st.columns([6, 4])
 
 vel_fig = go.Figure()
+palette = px.colors.qualitative.Plotly 
 
 for i in range(0,len(speed_columns)):
+
+	if 'CAN' in country_list[i]:
+		line=dict(color="red", width=4, dash="dash") 
+	else:
+		line = dict(color=palette[i % len(palette)])
 
 	
 	if df[speed_columns[i]].mean()>.5:
 		vel_fig.add_trace(go.Scatter(y=savgol_filter(df[speed_columns[i]],30,2),
 									x = df['Distance'],
 													mode='lines',
+													line=line,
 													name=f'{country_list[i]}'))
 	else: 
 		st.write(f'Error in Data for Country {country_list[i]}')
@@ -441,9 +448,15 @@ with col1:
 stroke_fig = go.Figure()
 for i in range(0,len(stroke_columns)):
 	try:
+		if 'CAN' in country_list[i]:
+				line=dict(color="red", width=4, dash="dash") 
+		else:
+			line = dict(color=palette[i % len(palette)])
+
 		stroke_fig.add_trace(go.Scatter(y=savgol_filter(df[stroke_columns[i]][df[stroke_columns[i]]>20],30,2),
 									x = df['Distance'],
 													mode='lines',
+													line = line,
 													name=country_list[i]))
 	except:
 		pass
@@ -588,9 +601,15 @@ transposed_split.columns = rename_duplicate_columns(transposed_split.columns)
 
 
 
-for col in transposed_split.columns:
+for i, col in enumerate(transposed_split.columns):
+
+	if 'CAN' in col:
+		line=dict(color="red", width=4, dash="dash") 
+	else:
+		line = dict(color=palette[i % len(palette)])
 	splits_plot.add_trace(go.Scatter(y=pd.to_datetime(transposed_split[col]), 
 		x = [250, 500, 750, 1000, 1250, 1500, 1750, 2000], 
+		line=line,
 		name = col))
 
 splits_plot.update_layout(

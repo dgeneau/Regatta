@@ -68,7 +68,15 @@ def rename_duplicate_columns(columns):
     
     return new_columns
 
-
+def str_time_to_seconds(time_str: str) -> float:
+    """
+    Convert a time string in the format 'M:SS.ss' to seconds (float).
+    
+    Example:
+        '6:16.60' -> 376.60
+    """
+    minutes, sec = time_str.split(":")
+    return int(minutes) * 60 + float(sec)
 
 st.set_page_config(layout="wide")
 
@@ -215,6 +223,8 @@ for data_file in race_list:
         st.write(f"Error reading {data_file}: {e}")
         continue
 
+
+
 # build the final dataframe
 prog_df = pd.DataFrame({
     'Boat'  : boat_country_list,
@@ -224,7 +234,7 @@ prog_df = pd.DataFrame({
 	'Rate' : rate_list,
     'Speed'  : speed_list,
 	'Average Split' : split_list, 
-	'Race Time (GPS)': time_list
+	'Race Time (GPS)': time_list,
 })
 
 class_bests = (
@@ -232,8 +242,20 @@ class_bests = (
     .sort_values("Prog", ascending=False)
     .reset_index(drop=True)
 )
-st.write(class_bests)
 
+offical_times_list = []
+
+if len(offical_times_list)>0: 
+    class_bests['Race Time (official)'] = offical_times_list
+
+    best_classes_prog = []
+    for bclass in class_bests['Class']:
+        best_classes_prog.append(float(prog_dict[bclass]))
+
+    st.write(best_classes_prog)
+    class_bests['Prog'] = (2000/np.array(pd.Series(offical_times_list).apply(str_time_to_seconds)))
+    class_bests['Prog'] = round((class_bests['Prog']/best_classes_prog ) *100, 2)
+st.write(class_bests)
 
 
 
@@ -286,7 +308,7 @@ def prog_rep(class_bests, logo_url,race_date):
 
     # ── Results table (LongTable → spills automatically) ───────────────────
     data      = [class_bests.columns.tolist()] + class_bests.values.tolist()
-    col_w     = [0.5 * inch] + [0.85 * inch] * (len(data[0]) - 1)
+    col_w     = [0.5 * inch] + [0.95 * inch] * (len(data[0]) - 1)
     table     = LongTable(
         data, colWidths=col_w, repeatRows=1           # header repeats
     )
