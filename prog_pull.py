@@ -237,13 +237,15 @@ prog_df = pd.DataFrame({
 	'Race Time (GPS)': time_list,
 })
 
+prog_df = prog_df[prog_df['Boat'] != 'LTU'] 
+prog_df = prog_df[prog_df['Boat'] != 'POL'] 
 class_bests = (
     prog_df.loc[prog_df.groupby("Class")["Prog"].idxmax()]
     .sort_values("Prog", ascending=False)
     .reset_index(drop=True)
 )
 
-offical_times_list = []
+offical_times_list = ['7:17.75', '6:43.03', '6:11.88', '6:29.75', '5:54.18', '6:54.96']
 
 if len(offical_times_list)>0: 
     class_bests['Race Time (official)'] = offical_times_list
