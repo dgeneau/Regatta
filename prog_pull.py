@@ -247,7 +247,7 @@ class_bests = (
     .reset_index(drop=True)
 )
 
-offical_times_list = ['6:58.53', '6:21.99', '5:42.55', '6:54.46', '7:33.64']
+offical_times_list = []
 
 if len(offical_times_list)>0: 
     class_bests['Race Time (official)'] = offical_times_list
