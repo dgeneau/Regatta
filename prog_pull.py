@@ -26,6 +26,8 @@ prog_dict = {
 			"W4x":"5.464480874",
 			"W2x":"5.037783375",
 			"W1x":"4.672897196",
+            "LW1x": "4.672897196", 
+            "LM1x": "5.115089514"
                 }
 
 
@@ -237,15 +239,15 @@ prog_df = pd.DataFrame({
 	'Race Time (GPS)': time_list,
 })
 
-prog_df = prog_df[prog_df['Boat'] != 'LTU'] 
-prog_df = prog_df[prog_df['Boat'] != 'POL'] 
+#prog_df = prog_df[prog_df['Boat'] != 'LTU'] 
+#prog_df = prog_df[prog_df['Boat'] != 'POL'] 
 class_bests = (
     prog_df.loc[prog_df.groupby("Class")["Prog"].idxmax()]
     .sort_values("Prog", ascending=False)
     .reset_index(drop=True)
 )
 
-offical_times_list = ['7:17.75', '6:43.03', '6:11.88', '6:29.75', '5:54.18', '6:54.96']
+offical_times_list = ['6:58.53', '6:21.99', '5:42.55', '6:54.46', '7:33.64']
 
 if len(offical_times_list)>0: 
     class_bests['Race Time (official)'] = offical_times_list
