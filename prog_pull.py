@@ -27,7 +27,8 @@ prog_dict = {
 			"W2x":"5.037783375",
 			"W1x":"4.672897196",
             "LW1x": "4.672897196", 
-            "LM1x": "5.115089514"
+            "LM1x": "5.115089514", 
+            "PR3 Mix4+": "4.7619"
                 }
 
 
@@ -103,7 +104,7 @@ class_mapping = {
     "WNOCOX4": "W4-",
     "WCOXED8": "W8+",
     "XCOXED4": "Mix4-",
-    "XSCULL2": "Mix2x"
+    "XSCULL2": "Mix2x", 
 }
 
 event_mapping = {
@@ -240,14 +241,16 @@ prog_df = pd.DataFrame({
 })
 
 #prog_df = prog_df[prog_df['Boat'] != 'LTU'] 
-#prog_df = prog_df[prog_df['Boat'] != 'POL'] 
+prog_df = prog_df[prog_df['Boat'] != 'IRQ'] 
 class_bests = (
     prog_df.loc[prog_df.groupby("Class")["Prog"].idxmax()]
     .sort_values("Prog", ascending=False)
     .reset_index(drop=True)
 )
 
-offical_times_list = []
+offical_times_list = ['7:06.10', '5:52.03', '6:26.87', '7:09.75']
+
+
 
 if len(offical_times_list)>0: 
     class_bests['Race Time (official)'] = offical_times_list
