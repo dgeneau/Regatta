@@ -599,7 +599,7 @@ transposed_split.columns = transposed_split.iloc[0,:]
 transposed_split = transposed_split.iloc[2:, :]
 transposed_split.columns = rename_duplicate_columns(transposed_split.columns)
 
-st.write(transposed_split)
+
 
 
 for i, col in enumerate(transposed_split.columns):
