@@ -243,17 +243,16 @@ prog_df = pd.DataFrame({
 
 
 #FILTERING OUT COUNTRIES####
-prog_df = prog_df[prog_df['Boat'] != 'LTU'] 
-prog_df = prog_df[prog_df['Boat'] != 'IRL'] 
-prog_df = prog_df[prog_df['Boat'] != 'DEN'] 
-st.write(prog_df[prog_df['Boat'] == 'GBR'])
+prog_df = prog_df[prog_df['Boat'] != 'CHN'] 
+
+
 class_bests = (
     prog_df.loc[prog_df.groupby("Class")["Prog"].idxmax()]
     .sort_values("Prog", ascending=False)
     .reset_index(drop=True)
 )
 
-offical_times_list = ['5:48.48', '6:49.34', '6:11.97', '6:27.71' ,'6:52.52', '7:28.75']
+offical_times_list = ['6:52.12', '5:27.67', '6:08.10', '7:30.14', '6:54.10']
 
 
 
