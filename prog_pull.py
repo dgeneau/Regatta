@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np 
 from pathlib import Path
 import glob
+from scipy.signal import savgol_filter
 
 
 # adding in prognostic times to look across event types and find the gap
@@ -242,15 +243,17 @@ prog_df = pd.DataFrame({
 
 
 #FILTERING OUT COUNTRIES####
-#prog_df = prog_df[prog_df['Boat'] != 'LTU'] 
-#prog_df = prog_df[prog_df['Boat'] != 'IRQ'] 
+prog_df = prog_df[prog_df['Boat'] != 'LTU'] 
+prog_df = prog_df[prog_df['Boat'] != 'IRL'] 
+prog_df = prog_df[prog_df['Boat'] != 'DEN'] 
+st.write(prog_df[prog_df['Boat'] == 'GBR'])
 class_bests = (
     prog_df.loc[prog_df.groupby("Class")["Prog"].idxmax()]
     .sort_values("Prog", ascending=False)
     .reset_index(drop=True)
 )
 
-offical_times_list = ['05:48.08', '07:08.52', '5:41.07', '06:37.87', '06:32.92', '6:31.08', '6:23.65', '8:01.20', '7:22.09']
+offical_times_list = ['5:48.48', '6:49.34', '6:11.97', '6:27.71' ,'6:52.52', '7:28.75']
 
 
 
@@ -266,7 +269,7 @@ if len(offical_times_list)>0:
     class_bests['Prog'] = round((class_bests['Prog']/best_classes_prog ) *100, 2)
 st.write(class_bests)
 
-
+class_bests = class_bests.sort_values('Prog', ascending=False).reset_index(drop=True)
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
