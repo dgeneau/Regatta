@@ -94,10 +94,13 @@ day = st.selectbox('Select Day for Analysis', event_races['Date (day)'].unique()
 
 
 all_day_results = []
+all_day_results_full = []
 
 
 
 day_data = event_races[event_races['Date (day)'] == day]
+
+
 
 for BC in day_data['boatClass'].unique():
     # Skip if BC not in prog_dict
@@ -108,10 +111,29 @@ for BC in day_data['boatClass'].unique():
     race_id_frame = day_data[day_data['boatClass'] == BC]
     id_list = race_id_frame['raceId']
 
+
     for race_id in id_list:
         race_times = results[results['id'] == race_id]
-        race_times = race_times[race_times['d2000m_Rank'] == 1]
+        #race_times = race_times[race_times['d2000m_Rank'] == 1]
+        
+        time_sec_full = pd.to_numeric(race_times['d2000m_TotalSeconds'], errors='coerce')
+        race_times['class'] = BC
+        race_times['Prog'] = round(((2000 / (time_sec_full)) / float(prog))*100,2)
+        race_times['speed'] = round(2000 / (time_sec_full),2)
+        desired_columns = ['DisplayName', 'class','bt_DisplayName', 'bt_Rank', 'bt_ResultTime', 'speed', 'Prog']
+        
+        
+            
 
+
+
+        filtered_df = race_times.loc[:, desired_columns]
+        #target_values = [1, 3, 4]
+
+        # Filter the DataFrame to return rows where 'col1' matches any of the target_values
+        #filtered_df = filtered_df[filtered_df['bt_Rank'].isin(target_values)]
+        all_day_results_full.append(filtered_df)
+        st.write(filtered_df)
         if not race_times.empty:
             
             time_sec = pd.to_numeric(race_times['d2000m_TotalSeconds'].iloc[0], errors='coerce')
@@ -131,8 +153,12 @@ for BC in day_data['boatClass'].unique():
                 'Prognostic': prognostic,
                 'Date': day
             })
+            
 # Combine everything into one clean DataFrame
-day_results = pd.DataFrame(all_day_results)
+all_day_results_full = pd.concat(all_day_results_full, ignore_index=True)
+st.write(all_day_results_full)
+
+#day_results = pd.DataFrame(all_day_results)
 
 
 class_bests = (
@@ -142,10 +168,14 @@ class_bests = (
 )
 
 
+
 class_bests = class_bests.drop('Race ID', axis=1)
 class_bests = class_bests.drop('Date', axis=1)
 
+
+
 st.write(class_bests)
+st.write(day_results)
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter

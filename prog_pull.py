@@ -243,7 +243,7 @@ prog_df = pd.DataFrame({
 
 
 #FILTERING OUT COUNTRIES####
-prog_df = prog_df[prog_df['Boat'] != 'CHN'] 
+#prog_df = prog_df[prog_df['Boat'] != 'CHN'] 
 
 
 class_bests = (
@@ -252,7 +252,7 @@ class_bests = (
     .reset_index(drop=True)
 )
 
-offical_times_list = ['6:52.12', '5:27.67', '6:08.10', '7:30.14', '6:54.10']
+offical_times_list = ['7:12.27', '6:36.75']
 
 
 

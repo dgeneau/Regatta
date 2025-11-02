@@ -421,7 +421,9 @@ palette = px.colors.qualitative.Plotly
 for i in range(0,len(speed_columns)):
 
 	if 'CAN' in country_list[i]:
-		line=dict(color="red", width=4, dash="dash") 
+		#line=dict(color="red", width=4, dash="dash") 
+		#line=dict(color="red", width=4)
+		line = dict(color=palette[i % len(palette)])
 	else:
 		line = dict(color=palette[i % len(palette)])
 
@@ -449,7 +451,9 @@ stroke_fig = go.Figure()
 for i in range(0,len(stroke_columns)):
 	try:
 		if 'CAN' in country_list[i]:
-				line=dict(color="red", width=4, dash="dash") 
+			#line=dict(color="red", width=4, dash="dash") 
+			#line=dict(color="red", width=4)
+			line = dict(color=palette[i % len(palette)])
 		else:
 			line = dict(color=palette[i % len(palette)])
 
@@ -605,7 +609,9 @@ transposed_split.columns = rename_duplicate_columns(transposed_split.columns)
 for i, col in enumerate(transposed_split.columns):
 
 	if 'CAN' in col:
-		line=dict(color="red", width=4, dash="dash") 
+		#line=dict(color="red", width=4, dash="dash")
+		#line = dict(color="red", width=4 ) 
+		line = dict(color=palette[i % len(palette)])
 	else:
 		line = dict(color=palette[i % len(palette)])
 	splits_plot.add_trace(go.Scatter(y=pd.to_datetime(transposed_split[col]), 
