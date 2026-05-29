@@ -181,6 +181,9 @@ race_list = glob.glob(f'{file_path}/{event}/**/**.csv')
 
 race_display = [] 
 b_class_list = []
+
+
+
 _='''
 if 'WCH_2024_1' or 'U23WCH_2024_1' == event: 
 
@@ -258,7 +261,7 @@ for file in race_list:
 	phase = file_name.split('/')[-1].split('.')[0].split('_')[-1]
 	parts = file_name.split('_')
 
-	if '2025' in event:
+	if '2025' or '2026' in event:
 		display = file_name  # Full filename
 		b_class = parts[3] if len(parts) > 3 else 'Unknown'
 	else:

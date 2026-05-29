@@ -133,7 +133,7 @@ for BC in day_data['boatClass'].unique():
         # Filter the DataFrame to return rows where 'col1' matches any of the target_values
         #filtered_df = filtered_df[filtered_df['bt_Rank'].isin(target_values)]
         all_day_results_full.append(filtered_df)
-        st.write(filtered_df)
+
         if not race_times.empty:
             
             time_sec = pd.to_numeric(race_times['d2000m_TotalSeconds'].iloc[0], errors='coerce')
@@ -158,7 +158,7 @@ for BC in day_data['boatClass'].unique():
 all_day_results_full = pd.concat(all_day_results_full, ignore_index=True)
 st.write(all_day_results_full)
 
-#day_results = pd.DataFrame(all_day_results)
+day_results = pd.DataFrame(all_day_results)
 
 
 class_bests = (
