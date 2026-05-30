@@ -27,9 +27,9 @@ prog_dict = {
 			"W4x":"5.464480874",
 			"W2x":"5.037783375",
 			"W1x":"4.672897196",
-            "LW1x": "4.672897196", 
-            "LM1x": "5.115089514", 
-            "PR3 Mix4+": "4.7619"
+            #"LW1x": "4.672897196", 
+            #"LM1x": "5.115089514", 
+            #"PR3 Mix4+": "4.7619"
                 }
 
 
@@ -81,6 +81,102 @@ def str_time_to_seconds(time_str: str) -> float:
     """
     minutes, sec = time_str.split(":")
     return int(minutes) * 60 + float(sec)
+
+def clean_editor_value(value):
+    if pd.isna(value):
+        return ""
+    return str(value).strip()
+
+def apply_manual_exclusions(source_df, exclusion_rows):
+    filtered_df = source_df.copy()
+    exclusion_notes = []
+
+    for _, row in exclusion_rows.dropna(how="all").iterrows():
+        boat = clean_editor_value(row.get("Boat")).upper()
+        boat_class = clean_editor_value(row.get("Class"))
+        race_stage = clean_editor_value(row.get("Race Stage"))
+
+        if not boat:
+            continue
+
+        mask = filtered_df["Boat"].str.upper() == boat
+        note_parts = [boat]
+
+        if boat_class:
+            mask = mask & (filtered_df["Class"] == boat_class)
+            note_parts.append(boat_class)
+
+        if race_stage:
+            mask = mask & (filtered_df["Race Stage"] == race_stage)
+            note_parts.append(race_stage)
+
+        removed_count = int(mask.sum())
+        if removed_count:
+            filtered_df = filtered_df.loc[~mask].copy()
+            exclusion_notes.append(f"Removed {removed_count} row(s): {' / '.join(note_parts)}")
+        else:
+            exclusion_notes.append(f"No match found for exclusion: {' / '.join(note_parts)}")
+
+    return filtered_df, exclusion_notes
+
+def build_class_bests(source_df, manual_rows):
+    if source_df.empty:
+        return source_df.copy(), []
+
+    class_bests = source_df.loc[source_df.groupby("Class")["Prog"].idxmax()].copy()
+    manual_notes = []
+
+    for _, row in manual_rows.dropna(how="all").iterrows():
+        boat = clean_editor_value(row.get("Boat")).upper()
+        boat_class = clean_editor_value(row.get("Class"))
+        race_stage = clean_editor_value(row.get("Race Stage"))
+
+        if not boat or not boat_class:
+            continue
+
+        matches = source_df[
+            (source_df["Class"] == boat_class)
+            & (source_df["Boat"].str.upper() == boat)
+        ]
+        note_parts = [boat_class, boat]
+
+        if race_stage:
+            matches = matches[matches["Race Stage"] == race_stage]
+            note_parts.append(race_stage)
+
+        if matches.empty:
+            manual_notes.append(f"No match found for manual selection: {' / '.join(note_parts)}")
+            continue
+
+        selected_row = matches.sort_values("Prog", ascending=False).iloc[[0]]
+        class_bests = class_bests[class_bests["Class"] != boat_class]
+        class_bests = pd.concat([class_bests, selected_row], ignore_index=True)
+        manual_notes.append(f"Using manual selection for {boat_class}: {boat}")
+
+    class_bests = class_bests.sort_values("Prog", ascending=False).reset_index(drop=True)
+    return class_bests, manual_notes
+
+def apply_official_times(source_df):
+    updated_df = source_df.copy()
+    official_notes = []
+
+    for row_index, row in updated_df.iterrows():
+        official_time = clean_editor_value(row.get("Race Time (official)"))
+        boat_class = clean_editor_value(row.get("Class"))
+
+        if not official_time:
+            continue
+
+        try:
+            official_seconds = str_time_to_seconds(official_time)
+            official_speed = 2000 / official_seconds
+            updated_df.at[row_index, "Speed"] = round(official_speed, 2)
+            updated_df.at[row_index, "Average Split"] = speed_to_split(official_speed)
+            updated_df.at[row_index, "Prog"] = round((official_speed / float(prog_dict[boat_class])) * 100, 2)
+        except Exception:
+            official_notes.append(f"Could not parse official time for {boat_class}: {official_time}")
+
+    return updated_df, official_notes
 
 st.set_page_config(layout="wide")
 
@@ -186,6 +282,7 @@ rate_list         = []
 stage_type        = []
 time_list         = []
 split_list        = []
+times_list        = []
 
 for data_file in race_list:
     b_class = Path(data_file).stem.split('_')[3]
@@ -205,6 +302,7 @@ for data_file in race_list:
                 country = df[f'ShortName{num}'].iloc[0]
                 speed = df[f'Speed{num}'].mean()
                 rate = df[f'Stroke{num}'].mean()
+                time = df[f'Time{num}'].max()
                 prog_val = round((speed / float(prog)) * 100, 2)
                 split = speed_to_split(speed)
                 time = sec_to_split(2000 / speed)
@@ -218,6 +316,7 @@ for data_file in race_list:
                 time_list.append(time)
                 class_type.append(b_class)
                 stage_type.append(stage)
+                times_list.append(time)
             except KeyError as ke:
                 st.write(f"Missing column for num={num}: {ke}")
             except Exception as inner_e:
@@ -242,30 +341,70 @@ prog_df = pd.DataFrame({
 })
 
 
-#FILTERING OUT COUNTRIES####
-#prog_df = prog_df[prog_df['Boat'] != 'CHN'] 
+st.subheader("Manual GPS Corrections")
 
+classes = [""] + sorted(prog_df["Class"].dropna().unique().tolist())
+boats = [""] + sorted(prog_df["Boat"].dropna().unique().tolist())
+race_stages = [""] + sorted(prog_df["Race Stage"].dropna().unique().tolist())
 
-class_bests = (
-    prog_df.loc[prog_df.groupby("Class")["Prog"].idxmax()]
-    .sort_values("Prog", ascending=False)
-    .reset_index(drop=True)
+st.caption("Use exclusions for bad GPS rows. Use manual selections to force a specific country/class into the class-best table.")
+
+exclusion_rows = st.data_editor(
+    pd.DataFrame(columns=["Class", "Boat", "Race Stage"]),
+    column_config={
+        "Class": st.column_config.SelectboxColumn("Class", options=classes),
+        "Boat": st.column_config.SelectboxColumn("Boat", options=boats),
+        "Race Stage": st.column_config.SelectboxColumn("Race Stage", options=race_stages),
+    },
+    num_rows="dynamic",
+    hide_index=True,
+    key="manual_exclusions",
 )
 
-offical_times_list = ['7:12.27', '6:36.75']
+manual_rows = st.data_editor(
+    pd.DataFrame(columns=["Class", "Boat", "Race Stage"]),
+    column_config={
+        "Class": st.column_config.SelectboxColumn("Class", options=classes),
+        "Boat": st.column_config.SelectboxColumn("Boat", options=boats),
+        "Race Stage": st.column_config.SelectboxColumn("Race Stage", options=race_stages),
+    },
+    num_rows="dynamic",
+    hide_index=True,
+    key="manual_class_selections",
+)
 
+analysis_df, exclusion_notes = apply_manual_exclusions(prog_df, exclusion_rows)
+for note in exclusion_notes:
+    st.info(note)
 
+class_bests, manual_notes = build_class_bests(analysis_df, manual_rows)
+for note in manual_notes:
+    st.info(note)
 
-if len(offical_times_list)>0: 
-    class_bests['Race Time (official)'] = offical_times_list
+#st.write(prog_df)
+#st.write(analysis_df.groupby('Class')['Prog'].max().sort_values(ascending=False))
 
-    best_classes_prog = []
-    for bclass in class_bests['Class']:
-        best_classes_prog.append(float(prog_dict[bclass]))
+class_bests["Race Time (official)"] = ""
+class_bests = st.data_editor(
+    class_bests,
+    column_config={
+        "Race Time (official)": st.column_config.TextColumn(
+            "Race Time (official)",
+            help="Enter official time as M:SS.ss, for example 6:07.26.",
+        ),
+    },
+    disabled=[
+        column for column in class_bests.columns
+        if column != "Race Time (official)"
+    ],
+    hide_index=True,
+    key="class_bests_official_times",
+)
 
-    st.write(best_classes_prog)
-    class_bests['Prog'] = (2000/np.array(pd.Series(offical_times_list).apply(str_time_to_seconds)))
-    class_bests['Prog'] = round((class_bests['Prog']/best_classes_prog ) *100, 2)
+class_bests, official_notes = apply_official_times(class_bests)
+for note in official_notes:
+    st.warning(note)
+
 st.write(class_bests)
 
 class_bests = class_bests.sort_values('Prog', ascending=False).reset_index(drop=True)
@@ -377,5 +516,3 @@ if st.button("Generate Prog Report"):
         file_name=f"Prog_report.pdf",
         mime="application/pdf"
     )
-
-
