@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 from scipy.signal import savgol_filter
 from pathlib import Path
 import plotly.express as px
+import re
 
 # adding in prognostic times to look across event types and find the gap
 
@@ -163,156 +164,109 @@ def clean_data(data):
     
     return cleaned_data
 
+
+def build_race_catalog(data_root):
+	race_catalog = []
+	for data_file in sorted(Path(data_root).rglob("*.csv")):
+		relative_path = data_file.relative_to(data_root)
+		path_parts = relative_path.parts
+
+		# Older events are stored under GPS_Data/2024/<event>/...
+		if path_parts[0] == "2024" and len(path_parts) >= 3:
+			event_name = path_parts[1]
+			group_parts = path_parts[2:-1]
+		else:
+			event_name = path_parts[0]
+			group_parts = path_parts[1:-1]
+
+		group_name = " / ".join(group_parts) if group_parts else "."
+		race_name = data_file.stem
+		event_prefix = f"{event_name}_"
+		if race_name.startswith(event_prefix):
+			race_name = race_name[len(event_prefix):]
+
+		race_catalog.append({
+			"label": f"{event_name} | {group_name} | {race_name}",
+			"event": event_name,
+			"group": group_name,
+			"race": race_name,
+			"file_path": data_file,
+		})
+
+	return race_catalog
+
+
+def event_recency_key(event_name, race_catalog):
+	"""Sort events newest-first using the year and numbered event sequence."""
+	year_matches = re.findall(r"(20\d{2})", event_name)
+	year = int(year_matches[-1]) if year_matches else 0
+
+	sequence_match = re.search(r"(?:WCP|WCp|Day)(\d+)", event_name)
+	sequence = int(sequence_match.group(1)) if sequence_match else 0
+
+	event_files = [
+		race["file_path"]
+		for race in race_catalog
+		if race["event"] == event_name
+	]
+	latest_modified = max(
+		(file_path.stat().st_mtime for file_path in event_files),
+		default=0,
+	)
+	return year, sequence, latest_modified, event_name
+
+
 with title:
 	st.title('Canada Rowing Regatta Analysis')
 
-file_path  = 'GPS_Data'
+file_path = Path('GPS_Data')
+race_catalog = build_race_catalog(file_path)
+event_list = sorted(
+	{race["event"] for race in race_catalog},
+	key=lambda event_name: event_recency_key(event_name, race_catalog),
+	reverse=True,
+)
 
-events = glob.glob(f'{file_path}/**')
-event_list = []
-for regatta in events:
-	regatta = regatta.split('/')[-1]
-	event_list.append(regatta)
+selected_events = st.multiselect(
+	'Select Event(s) for Analysis',
+	event_list,
+	placeholder='Choose two or more events to compare',
+)
 
-event = st.selectbox('Select Event for Analysis', event_list)
-day_list =  glob.glob(f'{file_path}/{event}/**')
-race_list = glob.glob(f'{file_path}/{event}/**/**.csv')
+if not selected_events:
+	st.header('Select Events for Analysis')
+	st.write('Select one or multiple events from the select-box above')
+	st.stop()
 
+available_races = [race for race in race_catalog if race["event"] in selected_events]
+race_options = {race["label"]: race for race in available_races}
+races = st.multiselect(
+	'Select Race(s) Across Events',
+	list(race_options),
+	placeholder='Choose races from the selected events',
+)
 
-race_display = [] 
-b_class_list = []
-
-
-
-_='''
-if 'WCH_2024_1' or 'U23WCH_2024_1' == event: 
-
-	for file in race_list:
-		parts = file.split('/')[-1].split('.')[0].split('_')
-
-		race_display.append('_'.join(parts[3:]))
-'''
-
-_='''
-if '2025' in event:
-	for file in race_list:
-		display = file.split('/')[-1].split('.')[0]
-		race_display.append(display)
-		b_class = display.split('_')[3]
-		b_class_list.append(b_class)
-		
-
-
-else: 
-	for file in race_list:
-		race_display.append(file.split('/')[-1].split('_')[-1].split('.')[0])
-
-
-race_display = sorted(race_display)
-
-
-races = st.multiselect('Select Race(s) for Analysis', race_display)
-
-
-
-
-if len(races)<1: 
-	st.header('Select Race for Analysis')
+if not races:
+	st.header('Select Races for Analysis')
 	st.write('Select one or multiple races from the select-box above')
 	st.stop()
 
-if races is not None:
-
-	dataframes = []
-	selected_b_class = []
-	if 'Paris' or 'ECH_2025_1' in event:
-		for i, race in enumerate(races):
-
-
-			sel_b_class = b_class_list[i]
-			data = f'{file_path}/{event}/{race}.csv'
-			df = pd.read_csv(data, delimiter=';')
-			df.columns = [f"{col}_{i+1}" for col in df.columns]
-			dataframes.append(df)
-			selected_b_class.append(sel_b_class)
-
-
-	else: 
-
-		for i, race in enumerate(races):
-
-
-			data = f'{file_path}/{event}/{event}_{race}.csv'
-			df = pd.read_csv(data, delimiter=';')
-			df.columns = [f"{col}_{i+1}" for col in df.columns]
-			dataframes.append(df)
-
-			sel_b_class = b_class_list[i]
-			selected_b_class.append(sel_b_class)
-
-
-	'''
-
-# Build race metadata map
-race_info = []
-
-for file in race_list:
-	file_name = Path(file).stem
-	phase = file_name.split('/')[-1].split('.')[0].split('_')[-1]
-	parts = file_name.split('_')
-
-	if '2025' or '2026' in event:
-		display = file_name  # Full filename
-		b_class = parts[3] if len(parts) > 3 else 'Unknown'
-	else:
-		display = parts[-1]
-		b_class = parts[0] if len(parts) > 0 else 'Unknown'
-
-	race_info.append({
-		"display": display,
-		"file_path": file,
-		"b_class": b_class, 
-		"Phase": phase
-	})
-
-# Use sorted race names for UI
-race_display = sorted([r["display"] for r in race_info])
-races = st.multiselect("Select Race(s) for Analysis", race_display)
-
-if not races:
-	st.header("Select Race for Analysis")
-	st.write("Select one or multiple races from the select-box above")
-	st.stop()
-
-# Load selected races safely
 dataframes = []
-selected_b_class = []
+selected_race_info = []
 
-# Detect if special naming convention applies
-special_event = 'Paris' in event or 'ECH_2025_1' in event
-
-for i, race in enumerate(races):
-	selected_race = next((r for r in race_info if r["display"] == race), None)
-
-	
-	
-	if selected_race is None:
-		st.write(f"Could not find file for selected race: {race}")
-		continue
-
-	data_path = selected_race["file_path"]
-
+for i, race_label in enumerate(races):
+	selected_race = race_options[race_label]
 	try:
-
-
-		
-		df = pd.read_csv(data_path, delimiter=';')
-		df.columns = [f"{col}_{i+1}" for col in df.columns]
-
-		dataframes.append(df)
-		selected_b_class.append(selected_race["b_class"])
+		race_df = pd.read_csv(selected_race["file_path"], delimiter=';')
+		race_df.columns = [f"{col}_{i+1}" for col in race_df.columns]
+		dataframes.append(race_df)
+		selected_race_info.append(selected_race)
 	except Exception as e:
-		st.write(f"Failed to load {data_path}: {e}")
+		st.write(f"Failed to load {selected_race['file_path']}: {e}")
+
+if not dataframes:
+	st.error('No selected race files could be loaded.')
+	st.stop()
 
 df = pd.concat(dataframes, axis=1)
 
@@ -336,23 +290,26 @@ for dis in distance_list:
 	col_names.append(str(dis)+'m')
 	
 selected_columns = [col for col in df.columns if 'ShortName' in col]
-phase = selected_race['Phase']
-#phase = data.split('/')[-1].split('.')[0].split('_')[-1]
 
 
 speed_columns = [col for col in df.columns if col.startswith('Speed')]
 stroke_columns = [col for col in df.columns if col.startswith('Stroke')]
 name_list  = [col for col in df.columns if col.startswith('ShortName')]
 splits_columns = [col for col in df.columns if col.startswith('Time')]
-times = df[splits_columns].iloc[-1,:]
+times = df[splits_columns].iloc[-1, :]
 times_in_seconds = [(label, time_to_seconds(time)) for label, time in times.items()]
 
-# Sort the list by the time in seconds
-sorted_times = sorted(times_in_seconds, key=lambda x: x[1])
+# Rank boats within their own race rather than across all selected races.
+rank_dict = {}
+for race_number in range(1, len(selected_race_info) + 1):
+	race_times = [
+		(label, seconds)
+		for label, seconds in times_in_seconds
+		if label.endswith(f"_{race_number}")
+	]
+	for rank, (label, _) in enumerate(sorted(race_times, key=lambda item: item[1]), start=1):
+		rank_dict[label] = rank
 
-rank_dict = {label: rank+1 for rank, (label, _) in enumerate(sorted_times)}
-
-# Create an array of the ranks based on the original order
 ranks = [rank_dict[label] for label in times.keys()]
 
 
@@ -363,15 +320,21 @@ country_list = []
 lane_list = []
 err_list = []
 plain_country = []
+boat_event_list = []
+boat_race_list = []
 
 for col in name_list:
-	lane = col.split('_')[0][-1]
+	race_number = int(col.rsplit('_', 1)[-1])
+	race_details = selected_race_info[race_number - 1]
+	lane = col.split('_')[0].replace('ShortName', '')
+	boat = df[col].iloc[0]
 	lane_list.append(lane)
-	plain_country.append(df[col][0])
-	
-
-	country_list.append(f'{df[col][0]}, {lane}')
-	#country_list.append(df[col][0])
+	plain_country.append(boat)
+	boat_event_list.append(race_details["event"])
+	boat_race_list.append(race_details["race"])
+	country_list.append(
+		f'{race_details["event"]} | {race_details["race"]} | {boat}, L{lane}'
+	)
 
 
 
@@ -394,10 +357,12 @@ if lane_det == True:
 		final_times.append(total_time)
 
 	times = pd.DataFrame()
+	times['Event'] = boat_event_list
+	times['Race'] = boat_race_list
 	times['Country'] = plain_country
 	times['Lane'] = lane_list
 	times['Race Time'] = final_times
-	st.dataframe(times.set_index(times.columns[0]), use_container_width = True)
+	st.dataframe(times, use_container_width=True, hide_index=True)
 		
 
 st.header('Graphical Analysis')
@@ -671,9 +636,6 @@ splits_fig  = go.Figure(data=[go.Table(
 ])
 splits_fig.update_layout(height=800) 
 st.plotly_chart(splits_fig, use_container_width=True)
-
-
-
 
 
 
