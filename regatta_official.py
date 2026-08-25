@@ -165,6 +165,20 @@ def clean_data(data):
     return cleaned_data
 
 
+def normalize_numeric_columns(race_df):
+	"""Some race files export decimals with commas (2,9) instead of periods (2.9)."""
+	for col in race_df.columns:
+		if 'ShortName' in col or 'Time' in col:
+			continue
+		if not pd.api.types.is_numeric_dtype(race_df[col]):
+			race_df[col] = pd.to_numeric(
+				race_df[col].astype(str).str.strip().str.replace(',', '.', regex=False),
+				errors='coerce',
+			)
+
+	return race_df
+
+
 def build_race_catalog(data_root):
 	race_catalog = []
 	for data_file in sorted(Path(data_root).rglob("*.csv")):
@@ -258,6 +272,7 @@ for i, race_label in enumerate(races):
 	selected_race = race_options[race_label]
 	try:
 		race_df = pd.read_csv(selected_race["file_path"], delimiter=';')
+		race_df = normalize_numeric_columns(race_df)
 		race_df.columns = [f"{col}_{i+1}" for col in race_df.columns]
 		dataframes.append(race_df)
 		selected_race_info.append(selected_race)
@@ -509,42 +524,48 @@ data = {
 
 
 for i in range(len(avg_vel_250)):
+	# Boats flagged during the velocity plot have unusable GPS data, so leave them out
+	# of the table entirely rather than trimming columns after the fact.
+	if i in err_list:
+		continue
+
 	try:
-	
-		data['Country, Lane'].append(country_list[i])
-		data['Rank'].append(ranks[i])
-		data['250m Split'].append(convert_seconds_to_time(500 / avg_vel_250[i]))
-		data['500m Split'].append(convert_seconds_to_time(500 / avg_vel_500[i]))
-		data['750m Split'].append(convert_seconds_to_time(500 / avg_vel_750[i]))
-		data['1000m Split'].append(convert_seconds_to_time(500 / avg_vel_1000[i]))
-		data['1250m Split'].append(convert_seconds_to_time(500 / avg_vel_1250[i]))
-		data['1500m Split'].append(convert_seconds_to_time(500 / avg_vel_1500[i]))
-		data['1750m Split'].append(convert_seconds_to_time(500 / avg_vel_1750[i]))
-		data['2000m Split'].append(convert_seconds_to_time(500 / avg_vel_2000[i]))
-		data['250m Stroke'].append(round(avg_sr_250[i],2))
-		data['500m Stroke'].append(round(avg_sr_500[i],2))
-		data['750m Stroke'].append(round(avg_sr_750[i],2))
-		data['1000m Stroke'].append(round(avg_sr_1000[i],2))
-		data['1250m Stroke'].append(round(avg_sr_1250[i],2))
-		data['1500m Stroke'].append(round(avg_sr_1500[i],2))
-		data['1750m Stroke'].append(round(avg_sr_1750[i],2))
-		data['2000m Stroke'].append(round(avg_sr_2000[i],2))
-		data['250m Speed'].append(round(avg_vel_250[i], 2))
-		data['500m Speed'].append(round(avg_vel_500[i], 2))
-		data['750m Speed'].append(round(avg_vel_750[i], 2))
-		data['1000m Speed'].append(round(avg_vel_1000[i], 2))
-		data['1250m Speed'].append(round(avg_vel_1250[i], 2))
-		data['1500m Speed'].append(round(avg_vel_1500[i], 2))
-		data['1750m Speed'].append(round(avg_vel_1750[i], 2))
-		data['2000m Speed'].append(round(avg_vel_2000[i], 2))
+		row = {
+			'Country, Lane': country_list[i],
+			'Rank': ranks[i],
+			'250m Split': convert_seconds_to_time(500 / avg_vel_250.iloc[i]),
+			'500m Split': convert_seconds_to_time(500 / avg_vel_500.iloc[i]),
+			'750m Split': convert_seconds_to_time(500 / avg_vel_750.iloc[i]),
+			'1000m Split': convert_seconds_to_time(500 / avg_vel_1000.iloc[i]),
+			'1250m Split': convert_seconds_to_time(500 / avg_vel_1250.iloc[i]),
+			'1500m Split': convert_seconds_to_time(500 / avg_vel_1500.iloc[i]),
+			'1750m Split': convert_seconds_to_time(500 / avg_vel_1750.iloc[i]),
+			'2000m Split': convert_seconds_to_time(500 / avg_vel_2000.iloc[i]),
+			'250m Stroke': round(avg_sr_250.iloc[i], 2),
+			'500m Stroke': round(avg_sr_500.iloc[i], 2),
+			'750m Stroke': round(avg_sr_750.iloc[i], 2),
+			'1000m Stroke': round(avg_sr_1000.iloc[i], 2),
+			'1250m Stroke': round(avg_sr_1250.iloc[i], 2),
+			'1500m Stroke': round(avg_sr_1500.iloc[i], 2),
+			'1750m Stroke': round(avg_sr_1750.iloc[i], 2),
+			'2000m Stroke': round(avg_sr_2000.iloc[i], 2),
+			'250m Speed': round(avg_vel_250.iloc[i], 2),
+			'500m Speed': round(avg_vel_500.iloc[i], 2),
+			'750m Speed': round(avg_vel_750.iloc[i], 2),
+			'1000m Speed': round(avg_vel_1000.iloc[i], 2),
+			'1250m Speed': round(avg_vel_1250.iloc[i], 2),
+			'1500m Speed': round(avg_vel_1500.iloc[i], 2),
+			'1750m Speed': round(avg_vel_1750.iloc[i], 2),
+			'2000m Speed': round(avg_vel_2000.iloc[i], 2),
+		}
+	except Exception:
+		# Build the whole row first so a partial failure can be skipped without
+		# leaving the columns at different lengths.
+		continue
 
-	except:
-		pass
+	for column, value in row.items():
+		data[column].append(value)
 
-
-for err in err_list:	
-	data['Country, Lane'].pop(err)
-	data['Rank'].pop(err)	
 
 splits_unsorted = pd.DataFrame(data)
 splits = splits_unsorted.sort_values(by = 'Rank').reset_index(drop=True)

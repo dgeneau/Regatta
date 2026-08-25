@@ -12,6 +12,20 @@ import glob
 from scipy.signal import savgol_filter
 
 
+def normalize_numeric_columns(race_df):
+	"""Some race files export decimals with commas (2,9) instead of periods (2.9)."""
+	for col in race_df.columns:
+		if 'ShortName' in col or 'Time' in col:
+			continue
+		if not pd.api.types.is_numeric_dtype(race_df[col]):
+			race_df[col] = pd.to_numeric(
+				race_df[col].astype(str).str.strip().str.replace(',', '.', regex=False),
+				errors='coerce',
+			)
+
+	return race_df
+
+
 # adding in prognostic times to look across event types and find the gap
 
 prog_dict = {
@@ -291,7 +305,7 @@ for data_file in race_list:
     stage   = Path(data_file).stem.split('_')[4]
     
     try:
-        df = pd.read_csv(data_file, delimiter=';')
+        df = normalize_numeric_columns(pd.read_csv(data_file, delimiter=';'))
         prog = prog_dict[b_class]
 
         # Detect how many boats there are by checking suffix numbers

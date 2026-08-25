@@ -14,6 +14,19 @@ prog_dict = {
     "W4x":"5.464480874","W2x":"5.037783375","W1x":"4.672897196",
 }
 
+def normalize_numeric_columns(race_df):
+    """Some race files export decimals with commas (2,9) instead of periods (2.9)."""
+    for col in race_df.columns:
+        if 'ShortName' in col or 'Time' in col:
+            continue
+        if not pd.api.types.is_numeric_dtype(race_df[col]):
+            race_df[col] = pd.to_numeric(
+                race_df[col].astype(str).str.strip().str.replace(',', '.', regex=False),
+                errors='coerce',
+            )
+
+    return race_df
+
 def convert_seconds_to_time(seconds):
     td = pd.to_timedelta(seconds, unit='s')
     m = td.components.minutes
@@ -75,7 +88,7 @@ if not races:
 dataframes = []
 for idx, race_name in enumerate(races, start=1):
     meta = next(r for r in race_info if r["display"] == race_name)
-    df_r = pd.read_csv(meta["file_path"], delimiter=';')
+    df_r = normalize_numeric_columns(pd.read_csv(meta["file_path"], delimiter=';'))
     # suffix every column so they don't collide when we concat
     df_r.columns = [f"{c}_{idx}" for c in df_r.columns]
     dataframes.append(df_r)

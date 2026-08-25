@@ -31,6 +31,20 @@ PROG_SPEEDS = {
 DATA_ROOT = Path("GPS_Data")
 
 
+def normalize_numeric_columns(race_df):
+    """Some race files export decimals with commas (2,9) instead of periods (2.9)."""
+    for col in race_df.columns:
+        if 'ShortName' in col or 'Time' in col:
+            continue
+        if not pd.api.types.is_numeric_dtype(race_df[col]):
+            race_df[col] = pd.to_numeric(
+                race_df[col].astype(str).str.strip().str.replace(',', '.', regex=False),
+                errors='coerce',
+            )
+
+    return race_df
+
+
 def speed_to_split(speed):
     if pd.isna(speed) or speed <= 0:
         return ""
@@ -121,7 +135,7 @@ def analyze_race(data_file, event, group):
     if prog_speed is None:
         return pd.DataFrame(), f"{race_name}: no prognostic speed for {boat_class}"
 
-    race_df = pd.read_csv(data_file, delimiter=";")
+    race_df = normalize_numeric_columns(pd.read_csv(data_file, delimiter=";"))
     rows = []
 
     for suffix in boat_suffixes(race_df.columns):
