@@ -32,6 +32,41 @@ prog_dict = {
 
 
 
+PROG_SPEEDS = {boat_class: float(speed) for boat_class, speed in prog_dict.items()}
+
+
+def race_boat_class(race_name):
+	"""Pull the boat class (M2x, W8+, ...) out of a race/file name."""
+	name = race_name.replace('_', ' ').strip()
+
+	# 2024 files still carry the raw federation codes (ROWMSCULL1-L----------FNL-...)
+	if name.upper().startswith('ROW'):
+		return class_mapping.get(race_name[3:10])
+
+	match = re.search(r'(M|W|Mix)\s*(8\+|4\+|4-|4x|2-|2x|1x)', name)
+	if not match:
+		return None
+	return f"{match.group(1)}{match.group(2)}"
+
+
+def prognostic_speed(race_name):
+	"""Open-class prognostic speed (m/s) for a race, or None when undefined.
+
+	Lightweight, para, junior and U23 events are compared against the open
+	prognostic for their boat class; mixed classes have no prognostic.
+	"""
+	boat_class = race_boat_class(race_name)
+	if boat_class is None:
+		return None
+	return PROG_SPEEDS.get(boat_class)
+
+
+def prognostic_pct(speed, prog_speed):
+	if prog_speed is None or speed is None or not np.isfinite(speed):
+		return None
+	return round(float(speed) / prog_speed * 100, 2)
+
+
 def convert_seconds_to_time(seconds):
     # Create a timedelta object
     time_delta = pd.to_timedelta(seconds, unit='s')
@@ -337,6 +372,8 @@ err_list = []
 plain_country = []
 boat_event_list = []
 boat_race_list = []
+boat_prog_speed = []
+boat_class_list = []
 
 for col in name_list:
 	race_number = int(col.rsplit('_', 1)[-1])
@@ -347,6 +384,8 @@ for col in name_list:
 	plain_country.append(boat)
 	boat_event_list.append(race_details["event"])
 	boat_race_list.append(race_details["race"])
+	boat_class_list.append(race_boat_class(race_details["race"]))
+	boat_prog_speed.append(prognostic_speed(race_details["race"]))
 	country_list.append(
 		f'{race_details["event"]} | {race_details["race"]} | {boat}, L{lane}'
 	)
@@ -377,7 +416,21 @@ if lane_det == True:
 	times['Country'] = plain_country
 	times['Lane'] = lane_list
 	times['Race Time'] = final_times
+	times['Boat Class'] = boat_class_list
+	times['Prognostic Time'] = [
+		convert_seconds_to_time(2000 / prog_speed) if prog_speed else '-'
+		for prog_speed in boat_prog_speed
+	]
+	times['Prognostic %'] = [
+		prognostic_pct(2000 / times_in_seconds[lane][1], boat_prog_speed[lane]) or '-'
+		for lane in range(len(country_list))
+	]
 	st.dataframe(times, use_container_width=True, hide_index=True)
+	st.caption(
+		'Prognostic % = boat speed / world-best prognostic speed for the boat class. '
+		'Lightweight, para, junior and U23 crews are compared against the open-class '
+		'prognostic; mixed classes have none and show "-".'
+	)
 		
 
 st.header('Graphical Analysis')
@@ -519,6 +572,14 @@ data = {
 '1500m Speed': [],
 '1750m Speed': [],
 '2000m Speed': [],
+'250m Prog %': [],
+'500m Prog %': [],
+'750m Prog %': [],
+'1000m Prog %': [],
+'1250m Prog %': [],
+'1500m Prog %': [],
+'1750m Prog %': [],
+'2000m Prog %': [],
 
 }
 
@@ -557,6 +618,14 @@ for i in range(len(avg_vel_250)):
 			'1500m Speed': round(avg_vel_1500.iloc[i], 2),
 			'1750m Speed': round(avg_vel_1750.iloc[i], 2),
 			'2000m Speed': round(avg_vel_2000.iloc[i], 2),
+			'250m Prog %': prognostic_pct(avg_vel_250.iloc[i], boat_prog_speed[i]) or '-',
+			'500m Prog %': prognostic_pct(avg_vel_500.iloc[i], boat_prog_speed[i]) or '-',
+			'750m Prog %': prognostic_pct(avg_vel_750.iloc[i], boat_prog_speed[i]) or '-',
+			'1000m Prog %': prognostic_pct(avg_vel_1000.iloc[i], boat_prog_speed[i]) or '-',
+			'1250m Prog %': prognostic_pct(avg_vel_1250.iloc[i], boat_prog_speed[i]) or '-',
+			'1500m Prog %': prognostic_pct(avg_vel_1500.iloc[i], boat_prog_speed[i]) or '-',
+			'1750m Prog %': prognostic_pct(avg_vel_1750.iloc[i], boat_prog_speed[i]) or '-',
+			'2000m Prog %': prognostic_pct(avg_vel_2000.iloc[i], boat_prog_speed[i]) or '-',
 		}
 	except Exception:
 		# Build the whole row first so a partial failure can be skipped without
@@ -589,7 +658,7 @@ splits_plot = go.Figure()
 
 transposed_split = splits_unsorted.T
 transposed_split.columns = transposed_split.iloc[0,:]
-transposed_split = transposed_split.iloc[2:, :]
+transposed_split = transposed_split.iloc[2:10, :]
 transposed_split.columns = rename_duplicate_columns(transposed_split.columns)
 
 
@@ -633,8 +702,9 @@ for j in range(8):
 	col_1 = remaining_cols.columns[j] if j < remaining_cols.shape[1] else None
 	col_9 = remaining_cols.columns[j+8] if (j+8) < remaining_cols.shape[1] else None
 	col_17 = remaining_cols.columns[j+16] if (j+16) < remaining_cols.shape[1] else None
+	col_25 = remaining_cols.columns[j+24] if (j+24) < remaining_cols.shape[1] else None
 	
-	concatenated_values = remaining_cols.apply(lambda row: '<br>'.join([str(row[col]) for col in [col_1, col_9, col_17] if col is not None]), axis=1)
+	concatenated_values = remaining_cols.apply(lambda row: '<br>'.join([str(row[col]) for col in [col_1, col_9, col_17, col_25] if col is not None]), axis=1)
 	
 	if j < len(distance_columns):
 		new_col[distance_columns[j]] = concatenated_values
@@ -643,7 +713,7 @@ for j in range(8):
 
 
 st.header('Race Split Breakdown')
-st.write('Data provided by country in the order of split, stroke rate, average velocity for each 250m section')
+st.write('Data provided by country in the order of split, stroke rate, average velocity, prognostic % for each 250m section')
 #concatenated_splits = concatenated_splits.iloc[:, :-8]
 splits_fig  = go.Figure(data=[go.Table(
 	header=dict(values=list(concatenated_splits.columns),
